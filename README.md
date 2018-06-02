@@ -7,9 +7,8 @@ pip install imagedt
 
 Dependencies
 ------------
-## Install coremltools 
-pip install coremltools
-
+1. tensorflow
+2. coremltools
 
 *coremltools* has the following dependencies:
 
@@ -23,3 +22,4 @@ you are converting models of these formats:
 - Xgboost (0.7+)
 - scikit-learn (0.17+)
 - libSVM
+
