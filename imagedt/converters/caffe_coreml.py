@@ -16,14 +16,15 @@ import coremltools
 def convert(model_path, prototxt_path, label_path, red=-123, green=-117, blue=-104, 
                 scale=1.0, bgr=False, output_model_name='sku_cls_model_noise.mlmodel'):
     """
-    args: red, grenn, blue should be nagative: like -123, -117, -104
-    output_model_name: default, sku_cls_model_noise.mlmodel
-    label_path: Classes are sorted by incrementing。 
-        liby_0, 0
-        liby_1, 1
-        liby_2, 2
-        liby_3, 3
-        liby_4, 4
+    Args: red, grenn, blue should be nagative: like -123, -117, -104
+        output_model_name: default, sku_cls_model_noise.mlmodel
+        label_path: Classes are sorted by incrementing。 
+            liby_0, 0
+            liby_1, 1
+            liby_2, 2
+            liby_3, 3
+            liby_4, 4
+    Returns: auto-saved coreml model in source path.
     """
 
     coreml_model = coremltools.converters.caffe.convert((
