@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # coding: utf-8
 from __future__ import absolute_import
 from __future__ import print_function
@@ -6,7 +5,6 @@ from __future__ import print_function
 import os
 import sys
 import numpy as np
-import argparse
 from .taffe import KaffeError, print_stderr
 from .taffe.tensorflow import TensorFlowTransformer
 
@@ -39,7 +37,7 @@ def convert(prototxt_path, caffemodel_path, phase='test', output_model_name='sta
 
     data_output_path = os.path.join(os.path.dirname(prototxt_path), 'output.mat')
     code_output_path = os.path.join(os.path.dirname(prototxt_path), 'output.py')
-    standalone_output_path = os.path.join(os.path.dirname(prototxt_path), 'standalonehybrid.pb')
+    standalone_output_path = os.path.join(os.path.dirname(prototxt_path), output_model_name)
 
     try:
         sess = tf.InteractiveSession()

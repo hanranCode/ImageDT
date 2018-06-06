@@ -7,3 +7,7 @@ from .caffe import *
 from .tensorflow import *
 from .torch import *
 from .converters import *
+
+
+__version__ = '0.0.12'
+
