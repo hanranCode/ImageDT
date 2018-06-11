@@ -7,7 +7,9 @@ from .caffe import *
 from .tensorflow import *
 from .torch import *
 from .converters import *
+from .file import *
+from .decorator import *
 
 
-__version__ = '0.0.12'
+__version__ = '0.0.13'
 

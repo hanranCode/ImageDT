@@ -4,8 +4,6 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
-import os
-import sys
 
 from tensorflow.contrib.lite.python import lite
 from tensorflow.contrib.lite.toco import toco_flags_pb2 as _toco_flags_pb2

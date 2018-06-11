@@ -48,4 +48,3 @@ if __name__ == '__main__':
     # Converte_init.test_caffe_tfmodel_convert()
     # Converte_init.test_caffe_coreml_convert()
     Converte_init.test_tfmodel_lite_convert()
-
