@@ -26,7 +26,7 @@ def assert_exist_files(*files):
             exit(-1)
 
 
-def convert(prototxt_path, caffemodel_path, phase='test', output_model_name='standalonehybrid.pb'):
+def convert(prototxt_path, caffemodel_path, phase='test', output_model_name='freeze_graph_model.pb'):
     """
     'def_path', 'Model definition (.prototxt) path'
     'caffemodel', 'Model data (.caffemodel) path'
@@ -40,82 +40,84 @@ def convert(prototxt_path, caffemodel_path, phase='test', output_model_name='sta
     standalone_output_path = os.path.join(os.path.dirname(prototxt_path), output_model_name)
 
     try:
-        sess = tf.InteractiveSession()
-        transformer = TensorFlowTransformer(prototxt_path, caffemodel_path, phase=phase)
-        print_stderr('Converting data...')
-        if data_output_path is not None:
-            data = transformer.transform_data()
-            print_stderr('Saving data...')
-            with open(data_output_path, 'wb') as data_out:
-                np.save(data_out, data)
-        if code_output_path is not None:
-            print_stderr('Saving source...')
-            with open(code_output_path, 'wb') as src_out:
-                src_out.write(transformer.transform_source())
-
-        if standalone_output_path:
-            filename, _ = os.path.splitext(os.path.basename(standalone_output_path))
-            temp_folder = os.path.join(os.path.dirname(standalone_output_path), '.tmp')
-            if not os.path.exists(temp_folder):
-                os.makedirs(temp_folder)
-
-            if data_output_path is None:
+        with tf.Session() as sess:
+            transformer = TensorFlowTransformer(prototxt_path, caffemodel_path, phase=phase)
+            print_stderr('Converting data...')
+            if data_output_path is not None:
                 data = transformer.transform_data()
                 print_stderr('Saving data...')
-                data_output_path = os.path.join(temp_folder, filename) + '.npy'
                 with open(data_output_path, 'wb') as data_out:
                     np.save(data_out, data)
-
-            if code_output_path is None:
+            if code_output_path is not None:
                 print_stderr('Saving source...')
-                code_output_path = os.path.join(temp_folder, filename) + '.py'
                 with open(code_output_path, 'wb') as src_out:
                     src_out.write(transformer.transform_source())
 
-            checkpoint_path = os.path.join(temp_folder, filename + '.ckpt')
-            graph_name = os.path.basename(standalone_output_path)
-            graph_folder = os.path.dirname(standalone_output_path)
-            input_node = transformer.graph.nodes[0].name
-            output_node = transformer.graph.nodes[-1].name
-            tensor_shape = transformer.graph.get_node(input_node).output_shape
-            tensor_shape_list = [tensor_shape.batch_size, tensor_shape.height, tensor_shape.width, tensor_shape.channels]
+            if standalone_output_path:
+                filename, _ = os.path.splitext(os.path.basename(standalone_output_path))
+                temp_folder = os.path.join(os.path.dirname(standalone_output_path), 'tmp')
 
-            sys.path.append(os.path.dirname(code_output_path))
-            module = os.path.splitext(os.path.basename(code_output_path))[0]
-            class_name = transformer.graph.name
-            KaffeNet = getattr(__import__(module), class_name)
+                if not os.path.exists(temp_folder):
+                    os.makedirs(temp_folder)
 
-            data_placeholder = tf.placeholder(tf.float32, tensor_shape_list, name=input_node)
-            net = KaffeNet({input_node: data_placeholder})
+                if data_output_path is None:
+                    data = transformer.transform_data()
+                    print_stderr('Saving data...')
+                    data_output_path = os.path.join(temp_folder, filename) + '.npy'
+                    with open(data_output_path, 'wb') as data_out:
+                        np.save(data_out, data)
 
-            # load weights stored in numpy format
-            net.load(data_output_path, sess)
+                if code_output_path is None:
+                    print_stderr('Saving source...')
+                    code_output_path = os.path.join(temp_folder, filename) + '.py'
+                    with open(code_output_path, 'wb') as src_out:
+                        src_out.write(transformer.transform_source())
 
-            print_stderr('Saving checkpoint...')
-            saver = tf.train.Saver()
-            saver.save(sess, checkpoint_path)
+                checkpoint_path = os.path.join(temp_folder, filename + '.ckpt')
+                graph_name = os.path.basename(standalone_output_path)
+                graph_folder = os.path.dirname(standalone_output_path)
+                input_node = transformer.graph.nodes[0].name
+                output_node = transformer.graph.nodes[-1].name
+                tensor_shape = transformer.graph.get_node(input_node).output_shape
+                tensor_shape_list = [tensor_shape.batch_size, tensor_shape.height, tensor_shape.width, tensor_shape.channels]
 
-            print_stderr('Saving graph definition as protobuf...')
-            tf.train.write_graph(sess.graph.as_graph_def(), graph_folder, graph_name, False)
+                sys.path.append(os.path.dirname(code_output_path))
+                module = os.path.splitext(os.path.basename(code_output_path))[0]
+                class_name = transformer.graph.name
+                KaffeNet = getattr(__import__(module), class_name)
 
-            input_graph_path = standalone_output_path
-            input_saver_def_path = ""
-            input_binary = True
-            input_checkpoint_path = checkpoint_path
-            output_node_names = output_node
-            restore_op_name = 'save/restore_all'
-            filename_tensor_name = 'save/Const:0'
-            output_graph_path = standalone_output_path
-            clear_devices = True
+                data_placeholder = tf.placeholder(tf.float32, tensor_shape_list, name=input_node)
+                net = KaffeNet({input_node: data_placeholder})
 
-            print_stderr('Saving standalone model...')
-            freeze_graph(input_graph_path, input_saver_def_path,
-                         input_binary, input_checkpoint_path,
-                         output_node_names, restore_op_name,
-                         filename_tensor_name, output_graph_path,
-                         clear_devices, '')
+                # load weights stored in numpy format
+                net.load(data_output_path, sess)
 
-            shutil.rmtree(temp_folder)
+                print_stderr('Saving checkpoint...')
+
+                saver = tf.train.Saver()
+                saver.save(sess, checkpoint_path)
+
+                print_stderr('Saving graph definition as protobuf...')
+                tf.train.write_graph(sess.graph.as_graph_def(), graph_folder, graph_name, as_text=False)
+
+                input_graph_path = standalone_output_path
+                input_saver_def_path = ""
+                input_binary = True
+                input_checkpoint_path = checkpoint_path
+                output_node_names = output_node
+                restore_op_name = 'save/restore_all'
+                filename_tensor_name = 'save/Const:0'
+                output_graph_path = standalone_output_path
+                clear_devices = True
+
+                print_stderr('Saving standalone model...')
+                freeze_graph(input_graph_path, input_saver_def_path,
+                             input_binary, input_checkpoint_path,
+                             output_node_names, restore_op_name,
+                             filename_tensor_name, output_graph_path,
+                             clear_devices, '')
+
+                shutil.rmtree(temp_folder)
 
         print_stderr('Done.')
     except KaffeError as err:

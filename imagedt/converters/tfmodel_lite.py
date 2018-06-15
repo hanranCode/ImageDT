@@ -6,6 +6,7 @@ from __future__ import print_function
 import argparse
 
 from tensorflow.contrib.lite.python import lite
+from tensorflow.python.tools.freeze_graph import freeze_graph
 from tensorflow.contrib.lite.toco import toco_flags_pb2 as _toco_flags_pb2
 from tensorflow.contrib.lite.toco import types_pb2 as _types_pb2
 
@@ -172,7 +173,6 @@ def convert(graph_def_file, output_file, output_format='TFLITE', inference_type=
             description=("Command line tool to run TensorFlow Lite Optimizing "
                                      "Converter (TOCO)."))
 
-    # Output file flag.
     # Output file flag.
     parser.add_argument('-output_file',
             "--output_file",
