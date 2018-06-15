@@ -3,12 +3,12 @@ from setuptools import setup, find_packages
 
 setup(
 	name = 'imagedt',
-	version = '0.0.11',
+	version = '0.0.13',
 	keywords = ('imagedt'),
 	description = 'a python lib for neural networks, file and image processing etc. ',
 	license = 'Apache License 2.0',
 
-	url = 'https://github.com/Eddy-zheng/ImageDT',
+	url = 'https://github.com/hanranCode/ImageDT',
 	author = 'pytorch_fans11',
 	author_email = 'zhengyzms@163.com',
 

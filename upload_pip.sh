@@ -7,7 +7,7 @@ rm -rf dist
 rm -rf imagedt.egg-info
 
 # 切换到python3，以便包通用
-source ~/py35/bin/activate
+# source py35
 
 # 本地打包，--universal适配python2与python3
 python setup.py sdist bdist_wheel --universal
@@ -16,4 +16,4 @@ python setup.py sdist bdist_wheel --universal
 twine upload dist/*
 
 # 退出python3，进入python2中
-source deactivate
+# source deactivate
