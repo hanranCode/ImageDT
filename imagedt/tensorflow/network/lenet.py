@@ -38,6 +38,7 @@ def lenet(images, num_classes=10, is_training=True, drop_keep_prob=0.5,
     net = end_points['Predictions'] = prediction_fn(logits, scope='Predictions')
 
     return logits, end_points
+
 lenet.default_image_size = 28
 
 

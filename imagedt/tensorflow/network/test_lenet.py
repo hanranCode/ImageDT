@@ -20,7 +20,7 @@ from __future__ import print_function
 import os
 import tensorflow as tf
 
-import lenet
+from . import lenet
 
 slim = tf.contrib.slim
 
@@ -34,7 +34,7 @@ class LeNetTest(tf.test.TestCase):
     num_classes = 10
     with self.test_session():
       inputs = tf.random_uniform((batch_size, height, width, 3))
-      logits, _ = lenet.lenet(inputs, num_classes)
+      logits, _ = lenet(inputs, num_classes)
       self.assertEquals(logits.op.name, 'LeNet/fc4/BiasAdd')
       self.assertListEqual(logits.get_shape().as_list(),
                            [batch_size, num_classes])
@@ -45,7 +45,7 @@ class LeNetTest(tf.test.TestCase):
     num_classes = 10
     with self.test_session():
       inputs = tf.random_uniform((batch_size, height, width, 3))
-      logits, _ = lenet.lenet(inputs, num_classes)
+      logits, _ = lenet(inputs, num_classes)
       self.assertEquals(logits.op.name, 'LeNet/fc4/BiasAdd')
       self.assertListEqual(logits.get_shape().as_list(),
                            [batch_size, num_classes])
@@ -56,7 +56,7 @@ class LeNetTest(tf.test.TestCase):
     num_classes = 10
     with self.test_session():
       inputs = tf.random_uniform((batch_size, height, width, 3))
-      logits, _ = lenet.lenet(inputs, num_classes)
+      logits, _ = lenet(inputs, num_classes)
       self.assertEquals(logits.op.name, 'LeNet/fc4/BiasAdd')
       self.assertListEqual(logits.get_shape().as_list(),
                            [batch_size, num_classes])
@@ -67,7 +67,7 @@ class LeNetTest(tf.test.TestCase):
     num_classes = 10
     with self.test_session():
       inputs = tf.random_uniform((batch_size, height, width, 3))
-      _, end_points = lenet.lenet(inputs, num_classes)
+      _, end_points = lenet(inputs, num_classes)
       expected_names = ['conv1', 
                         'pool1',
                         'conv2', 
@@ -82,11 +82,11 @@ class LeNetTest(tf.test.TestCase):
 
   def testEvaluation(self):
     batch_size = 2
-    height = width = lenet.lenet.default_image_size  # set train imgae size
+    height = width = lenet.default_image_size  # set train imgae size
     num_classes = 10
     with self.test_session():
       eval_inputs = tf.random_uniform((batch_size, height, width, 3))
-      logits, _ = lenet.lenet(eval_inputs, is_training=False)
+      logits, _ = lenet(eval_inputs, is_training=False)
       self.assertListEqual(logits.get_shape().as_list(),
                            [batch_size, num_classes])
       predictions = tf.argmax(logits, 1)
@@ -94,16 +94,16 @@ class LeNetTest(tf.test.TestCase):
 
   def testForward(self): 
     batch_size = 1
-    height = width = lenet.lenet.default_image_size  # set train imgae size
+    height = width = lenet.default_image_size  # set train imgae size
     with self.test_session() as sess:
       inputs = tf.random_uniform((batch_size, height, width, 3))
-      logits, _ = lenet.lenet(inputs)
+      logits, _ = lenet(inputs)
       sess.run(tf.global_variables_initializer())
       output = sess.run(logits)
       self.assertTrue(output.any())
 
-  def test_train(self):
-    imgae_dir = '/Users/zhengyongzhe/Documents/imageDT-work/ImageDT/test/images'
+  def TODO_train(self):
+    imgae_dir = './test/images'
     images_path = os.listdir(imgae_dir)
 
     for image_path in images_path:

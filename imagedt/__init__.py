@@ -9,7 +9,7 @@ from .torch import *
 from .converters import *
 from .file import *
 from .decorator import *
-
+from .dir import *
 
 __version__ = '0.0.13'
 
