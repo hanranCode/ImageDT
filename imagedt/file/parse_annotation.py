@@ -20,7 +20,7 @@ class Anno_OP(object):
         return annotation
 
     def parse_bndx_object(self, bndbox_object):
-        "return bndx list ['xmin', 'ymin', 'xmax', 'ymax'] by float"
+        """return bndx list ['xmin', 'ymin', 'xmax', 'ymax'] by float"""
         rectangle = [bndbox_object.find(coord).text for coord in ['xmin', 'ymin', 'xmax', 'ymax']]
         return map(float, rectangle)
 

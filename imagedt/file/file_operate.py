@@ -119,6 +119,9 @@ class FilesOp(object):
         return file_pairs
 
     def rename_file_with_uuid(self, root_dir):
+        """
+        root_dir contains: JPEGImages and Annotations
+        """
         self.check_data_pairs(root_dir)
         file_pairs = self.get_jpg_xml_pairs(root_dir)
         for index, file_pair in enumerate(file_pairs):
@@ -140,11 +143,3 @@ class FilesOp(object):
         for item in dirs:
             dep_files += self.get_abs_path(item, os.listdir(item))
         return dep_files
-
-if __name__ == '__main__':
-    root_dir = '/ssd_data/price_tag/detect'
-    FOP = FilesOp()
-
-    FOP.rename_file_with_uuid(root_dir)
-    # FOP.del_broken_image(root_dir)
-    # FOP.check_data_pairs(root_dir)
