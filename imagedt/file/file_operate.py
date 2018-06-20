@@ -1,10 +1,13 @@
 # coding: utf-8
+from __future__ import absolute_import
+from __future__ import print_function
 
 import os
 import cv2
 import uuid
 import nose.tools as ntools
 
+from ..dir.dir_loop import loop
 
 DIR_TYPR = ['JPEGImages', 'Annotations']
 
@@ -12,7 +15,7 @@ DIR_TYPR = ['JPEGImages', 'Annotations']
 class FilesOp(object):
     def __init__(self):
         super(FilesOp, self).__init__()
-        print "init {0} ......".format('FilesOp')
+        print("init {0} ......".format('FilesOp'))
 
     def get_abs_path(self, file_dir, files_list):
         return [os.path.join(file_dir, f_item) for f_item in files_list]
@@ -20,7 +23,7 @@ class FilesOp(object):
     def check_dir_exist(self, path):
         if not os.path.isdir(path):
             os.mkdir(path)
-            print "mkidr {0}".format(path)
+            print("mkidr {0}".format(path))
 
     def check_file_exist(self, fpath):
         if not os.path.exists(fpath):
@@ -43,7 +46,7 @@ class FilesOp(object):
         try:
             self.assert_in_op('.', bs_name)
         except Exception as e:
-            print e
+            print(e) 
             raise ValueError("file {0} basename error ".format(bs_name))
         return os.path.join(dir_name, uid+'.'+bs_name.split('.')[-1])
 
@@ -56,7 +59,7 @@ class FilesOp(object):
         try:
             ntools.assert_not_in(member, container)
         except Exception as e:
-            print e
+            print(e) 
             raise ValueError('Value {0} contains {1}'.format(container, member))
 
     def assert_in_op(self, member, container):
@@ -67,14 +70,14 @@ class FilesOp(object):
             else:
                 ntools.assert_in(member, container)
         except Exception as e:
-            print e
+            print(e) 
             raise ValueError("Value {0} didn't contain {1}".format(container, member))
 
     def assert_instance_op(self, inst, tar_inst=list()):
         try:
             ntools.assert_is_instance(inst, type(tar_inst))
         except Exception as e:
-            print e
+            print(e)
             raise ValueError("input Values should be list...")
 
     def del_broken_image(self, root_dir):
@@ -84,8 +87,8 @@ class FilesOp(object):
             imat = cv2.imread(img_name)
             if imat is None:
                 os.remove(img_name)
-                print "remove broken image: {0}".format(img)
-            print "check_data_pairs finished: {0} / {1}".format(index + 1, len(image_files))
+                print("remove broken image: {0}".format(img))
+            print("check_data_pairs finished: {0} / {1}".format(index + 1, len(image_files)))
 
     def check_data_pairs(self, root_dir, anno_type='.xml'):
         # root dir should contain 'JPEGImages' and 'Annotations' dirs
@@ -97,14 +100,14 @@ class FilesOp(object):
         num_images = len(images_files)
         num_xmlfil = len(allxml_files)
         if num_images == num_xmlfil and len(set(images_files+allxml_files)) == num_images:
-            print "check_data_pairs finished: effective data pairs {0} . ".format(len(images_files))
+            print("check_data_pairs finished: effective data pairs {0} . ".format(len(images_files)))
             return "have same files"
 
         for index, file_name in enumerate(allxml_files):
             if file_name not in images_files:
-                print "annotation file {0} not in JPG".format(file_name)
+                print("annotation file {0} not in JPG".format(file_name))
                 os.remove(os.path.join(root_dir, DIR_TYPR[1], file_name+anno_type))
-            print "check_data_pairs finished: {0} / {1}".format(index+1, num_xmlfil)
+            print("check_data_pairs finished: {0} / {1}".format(index+1, num_xmlfil))
 
     def get_jpg_xml_pairs(self, root_dir, anno_type='.xml'):
         """return: image and xml pairs abs path [image_path, xml_path]......"""
@@ -127,7 +130,7 @@ class FilesOp(object):
         for index, file_pair in enumerate(file_pairs):
             uid = str(uuid.uuid1())
             self.rename_data_pairs(file_pair, uid)
-            print "finished: {0} / {1}.".format(index+1, len(file_pairs))
+            print("finished: {0} / {1}.".format(index+1, len(file_pairs)))
 
     def rename_single_file_uuid(self, root_dir):
         f_names = self.get_abs_path(root_dir, os.listdir(root_dir))
@@ -135,7 +138,7 @@ class FilesOp(object):
             f_uuid = str(uuid.uuid1())
             new_fpath = self.rename_with_uuid(f_name, f_uuid)
             os.rename(f_name, new_fpath)
-            print "finished {0}/{1}".format(index+1, len(f_names))
+            print("finished {0}/{1}".format(index+1, len(f_names)))
 
     def loop_dir(self, root_dir):
         dep_files = list()
@@ -143,3 +146,18 @@ class FilesOp(object):
         for item in dirs:
             dep_files += self.get_abs_path(item, os.listdir(item))
         return dep_files
+
+    def rename_class_dir(self, root_dir, add_name_str):
+        all_files = loop(root_dir, ['.jpg'])
+        all_dirs = dict([(item, 1) for item in all_files])
+
+        for class_dir in all_dirs:
+            class_dir_name = os.path.dirname(class_dir)
+            set_name = class_dir_name.replace(os.path.basename(class_dir_name), add_name_str + os.path.basename(class_dir_name))
+
+            if not class_dir.startswith(add_name_str):
+                try:
+                    os.renames(class_dir_name, set_name)
+                    print("rename {0} as {1}".format(os.path.basename(class_dir_name), os.path.basename(set_name)))
+                except Exception as e:
+                    print(class_dir_name)
