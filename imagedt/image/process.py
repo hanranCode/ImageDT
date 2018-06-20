@@ -2,9 +2,13 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import os
 import cv2
 import numpy as np
 
+from ..dir.dir_loop import loop
+
+IMG_EXTENSIONS = ['.jpg', '.JPG', '.jpeg', '.JPEG', '.png', '.PNG', '.ppm', '.PPM', '.bmp', '.BMP']
 
 
 def noise_padd(img, edge_size=224):
@@ -50,3 +54,22 @@ def noise_padd(img, edge_size=224):
         img = np.concatenate((noise, img, noise), axis=1)
 
     return img
+
+
+
+def remove_broken_image(data_dir):
+    image_files = loop(data_dir, IMG_EXTENSIONS)
+
+    for image_file in image_files:
+        try:
+            img_mat = cv2.imread(image_file)
+
+            if img_mat is None:
+                os.remove(image_file)
+                print('remove broken image {0}'.format(image_file))
+        except:
+            os.remove(image_file)
+            print('remove broken file {0}'.format(image_file))
+
+
+
