@@ -107,3 +107,4 @@ venv.bak/
 *.tfrecord
 *.tfrecords
 *.ipynb
+*.xml

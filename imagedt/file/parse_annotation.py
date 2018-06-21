@@ -113,7 +113,7 @@ class Anno_OP(object):
                 xmlfile.write(xml)
             print("finished reset {0}/{1}".format(index+1, len(os.listdir(xml_dir))))
 
-    def write_xml(self, bndboxs, scores, xmlname, thresh=0.1, classes=None):
+    def write_xml(self, bndboxs, scores, xmlname, thresh=0.1, classes='3488'):
 
         annotation = etree.Element("Annotation")
         for index, loca_info in enumerate(bndboxs):
@@ -122,7 +122,7 @@ class Anno_OP(object):
             vocObject = etree.SubElement(annotation, "object")
             name = etree.SubElement(vocObject, "name")
 
-            name.text = '3488'
+            name.text = classes
 
             desc = etree.SubElement(vocObject, "desc")
             desc.text = unicode('object', 'utf-8')

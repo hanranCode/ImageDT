@@ -74,6 +74,18 @@ class Test_File_operators(object):
     def rename_xml_cls_name(self):
         self.parse_tools.reset_xml_cls(self.test_data_dir, name='3488', desc=u'圆柱圆台形')
 
+    def test_write_xml_with_boxandscore(self):
+        # write_xml(bndboxs, scores, xmlname, thresh=0.1, classes=None)
+        # bndboxs : [[xmin, ymin, xmax, ymax], [xmin, ymin, xmax, ymax], ...]
+        # scores: [0.8, 0.9, score3, score4, score5]
+        # len(bndboxs) == len(scores)
+        # xmlname: save xml path,eg:"save_dir/xxxxx.xml"
+        bndboxs = [[1,1, 101, 101], [11,11, 1101, 1101]]
+        scores = [0.9, 0.1]
+        xmlname = os.path.join(os.path.dirname(self.test_train_datas_dir), 'text_write.xml')
+        self.parse_tools.write_xml(bndboxs, scores, xmlname, thresh=0.1, classes='3488')
+
+
     def detect_eval_map(self):
         detpath = '/data/dataset/shelf_datasets/test_jpg/Annotations'
         annopath = '/data/dataset/shelf_datasets/test_jpg/Annotations2'
@@ -91,6 +103,7 @@ if __name__ == '__main__':
 
     # File_operate_init.converte_detect_records()
     # File_operate_init.rename_xml_cls_name()
+    File_operate_init.test_write_xml_with_boxandscore()
 
     rec, prec, ap = File_operate_init.detect_eval_map()
     print "mean ap: {0}".format(ap)
