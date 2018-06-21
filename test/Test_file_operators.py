@@ -91,6 +91,7 @@ if __name__ == '__main__':
 
     # File_operate_init.converte_detect_records()
     # File_operate_init.rename_xml_cls_name()
-    # rec, prec, ap = File_operate_init.detect_eval_map()
-    # print "mean ap: {0}".format(ap)
+
+    rec, prec, ap = File_operate_init.detect_eval_map()
+    print "mean ap: {0}".format(ap)
 

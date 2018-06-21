@@ -77,8 +77,8 @@ def voc_ap(rec, prec, use_07_metric=False):
         ap = np.sum((mrec[i + 1] - mrec[i]) * mpre[i + 1])
     return ap
 
-def get_images_basename(xml_path):
-    return [os.path.splitext(os.path.basename(item))[0] for item in loop(xml_path)]
+def get_xmls_basename(xml_path):
+    return [os.path.splitext(os.path.basename(item))[0] for item in loop(xml_path, ['.xml'])]
 
 
 def voc_eval(detpath,
@@ -88,18 +88,18 @@ def voc_eval(detpath,
              use_07_metric=False):
 
     # read list of images
-    imagenames = get_images_basename(detpath)
+    xmlnames = get_xmls_basename(detpath)
     # load gt
     recs = {}
-    for i, imagename in enumerate(imagenames):
+    for i, imagename in enumerate(xmlnames):
         recs[imagename] = parse_rec(os.path.join(annopath, '{0}.xml').format(imagename))
         print('Reading annotation for {:d}/{:d}'.format(
-            i + 1, len(imagenames)))
+            i + 1, len(xmlnames)))
 
     # extract gt objects for this class
     class_recs = {}
     npos = 0
-    for imagename in imagenames:
+    for imagename in xmlnames:
         R = [obj for obj in recs[imagename] if obj['name'] == classname]
         bbox = np.array([x['bbox'] for x in R])
         difficult = np.array([x['difficult'] for x in R]).astype(np.bool)
