@@ -3,7 +3,12 @@ a python lib for neural networks, file and image processing etc.
 
 Installation
 ------------
-pip install imagedt
+1. pip install
+    pip install imagedt    
+2. source install 
+    git clone https://github.com/hanranCode/ImageDT.git
+    cd ImageDT
+    python setup.py install
 
 Dependencies
 ------------
