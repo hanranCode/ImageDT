@@ -3,7 +3,6 @@
 
 import os
 import sys
-
 import nose.tools  as ntools
 
 from imagedt.file import parse_annotation, file_operate
