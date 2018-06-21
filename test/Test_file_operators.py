@@ -3,9 +3,8 @@
 
 import os
 import sys
-sys.path.append('./')
 
-
+import nose.tools  as ntools
 
 from imagedt.file import parse_annotation, file_operate
 from imagedt.tensorflow.tools import data_converters
@@ -20,37 +19,64 @@ class Test_File_operators(object):
         super(Test_File_operators, self).__init__()
         self.parse_tools = parse_annotation.Anno_OP()
         self.file_op = file_operate.FilesOp()
-        self.data_dir = '/data/dataset/shelf_datasets/liby_merge_shlef'
+        self.test_data_dir = './test/sources/data_dir'
+        self.test_train_datas_dir = './test/sources/train_datas_dir'
+
+    def _create_brk_jpg(self):
+        create_brk_jpg = os.path.join(self.test_data_dir, 'broken.jpg')
+        with open(create_brk_jpg, 'w') as f:
+            f.write("'It's boring")
+        return create_brk_jpg
 
     def parse_annotations(self, xml_path):
         self.parse_tools.parse_lab_xml(xml_path)
 
     def test_pars_annotations(self):
-        xml_poaths = dir_loop.loop(self.data_dir, ['.xml'])
+        xml_poaths = dir_loop.loop(self.test_data_dir, ['.xml'])
         self.parse_annotations(xml_poaths[0])
 
     def test_converte_detect_records(self):
-        save_path = '/data/dataset/shelf_datasets/liby_merge_shlef/training.tfrecord'
-        data_converters.converte_detect_records(self.data_dir, save_path)
+        save_path = './training.tfrecord'
+        data_converters.converte_detect_records(self.test_data_dir, save_path)
 
-    def test_file_operators(self):
-        self.file_op.rename_file_with_uuid(self.data_dir)
-        self.file_op.del_broken_image(self.data_dir)
-        self.file_op.check_data_pairs(self.data_dir)
+    ###################### test_file_operators ######################
+    def test_rename_file_with_uuid(self):
+        self.file_op.rename_file_with_uuid(self.test_data_dir)
+
+    def test_del_broken_image(self):
+        # test case: creating a new broken image file , it should be delete
+        create_brk_jpg = self._create_brk_jpg()
+        ntools.assert_true(os.path.isfile(create_brk_jpg))
+        # check broken images
+        self.file_op.del_broken_image(self.test_data_dir)
+        # deleted file
+        ntools.assert_true(os.path.isfile(create_brk_jpg))
+
+    def test_check_data_pairs(self):
+        self.file_op.check_data_pairs(self.test_data_dir)
 
     def test_file_operate_one(self):
-        self.file_op.rename_class_dir('/data/dataset/liby_offline/train_renet50/zip', 'other_diao_')
+        self.file_op.rename_class_dir(self.test_train_datas_dir, before_cls_str='class1')
+        classes = os.listdir(self.test_train_datas_dir)[0]
+        ntools.assert_false(classes.startswith('other_'))
+        self.file_op.rename_class_dir(self.test_train_datas_dir, before_cls_str='other_diao_')
+        classes = os.listdir(self.test_train_datas_dir)[0]
+        ntools.assert_true(classes.startswith('other'))
+    ###################### test_file_operators ######################
 
-    def remove_brokken(self):
-        process.remove_broken_image('/data/dataset/liby_offline/train_renet50/zip')
+    def test_process_remove_brokken(self):
+        create_brk_jpg = self._create_brk_jpg()
+        ntools.assert_true(os.path.isfile(create_brk_jpg))
+        process.remove_broken_image(self.test_data_dir)
+        # deleted file
+        ntools.assert_false(os.path.isfile(create_brk_jpg))
 
     def rename_xml_cls_name(self):
-        self.parse_tools.reset_xml_cls('/data/dataset/shelf_datasets/test_detect_save/Annotations')
+        self.parse_tools.reset_xml_cls(self.test_data_dir, name='3488', desc=u'圆柱圆台形')
 
     def detect_eval_map(self):
         detpath = '/data/dataset/shelf_datasets/test_jpg/Annotations'
         annopath = '/data/dataset/shelf_datasets/test_jpg/Annotations2'
-
         rec, prec, ap = detect_eval.voc_eval(detpath, annopath, '3488',
                                                      ovthresh=0.5,
                                                      use_07_metric=False)
@@ -61,9 +87,10 @@ if __name__ == '__main__':
     File_operate_init = Test_File_operators()
     # File_operate_init.test_pars_annotations()
     # File_operate_init.test_file_operators()
-    # File_operate_init.test_converte_detect_records()
     # File_operate_init.test_file_operate_one()
-    # File_operate_init.rename_xml_cls_name()
-    rec, prec, ap = File_operate_init.detect_eval_map()
 
-    print "mean ap: {0}".format(ap)
+    # File_operate_init.converte_detect_records()
+    # File_operate_init.rename_xml_cls_name()
+    # rec, prec, ap = File_operate_init.detect_eval_map()
+    # print "mean ap: {0}".format(ap)
+

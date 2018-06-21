@@ -9,7 +9,6 @@ from lxml import etree
 class Anno_OP(object):
     def __init__(self):
         super(Anno_OP, self).__init__()
-        print "init Anno_OP......"
 
     def read_xml(self, fxml):
         """
@@ -102,14 +101,47 @@ class Anno_OP(object):
             xmlfile.write(xml)
 
     def reset_xml_cls(self, xml_dir, name='3488', desc=u'圆柱圆台形' ):
-        for f_path in os.listdir(xml_dir):
+        for index, f_path in enumerate(os.listdir(xml_dir)):
             xml_path = os.path.join(xml_dir, f_path)
             an_objects = self.read_xml(xml_path)
             for tag in an_objects.iter('object'):
                 tag.find('name').text = name
-                tag.find('desc').text = desc
-
+                if tag.find('desc') is not None:
+                     tag.find('desc').text = desc
             xml = etree.tostring(an_objects, pretty_print=True, encoding='UTF-8')
             with open(xml_path, "w") as xmlfile:
                 xmlfile.write(xml)
+            print("finished reset {0}/{1}".format(index+1, len(os.listdir(xml_dir))))
 
+    def write_xml(self, bndboxs, scores, xmlname, thresh=0.1, classes=None):
+
+        annotation = etree.Element("Annotation")
+        for index, loca_info in enumerate(bndboxs):
+            if scores[index] < thresh:
+                continue
+            vocObject = etree.SubElement(annotation, "object")
+            name = etree.SubElement(vocObject, "name")
+
+            name.text = '3488'
+
+            desc = etree.SubElement(vocObject, "desc")
+            desc.text = unicode('object', 'utf-8')
+
+            # xmin ,ymin, xmax, ymax
+            xmins, ymins, xmaxs, ymaxs = map(str, loca_info)
+            # ymin, xmin, ymax, xmax
+            # ymins, xmins, ymaxs, xmaxs = map(str, loca_info)
+
+            bndbox = etree.SubElement(vocObject, "bndbox")
+            xmin = etree.SubElement(bndbox, "xmin")
+            xmin.text = xmins
+            ymin = etree.SubElement(bndbox, "ymin")
+            ymin.text = ymins
+            xmax = etree.SubElement(bndbox, "xmax")
+            xmax.text = xmaxs
+            ymax = etree.SubElement(bndbox, "ymax")
+            ymax.text = ymaxs
+
+        xml = etree.tostring(annotation, pretty_print=True, encoding='UTF-8')
+        with open(xmlname, "w") as xmlfile:
+            xmlfile.write(xml)

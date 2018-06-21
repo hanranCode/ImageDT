@@ -15,7 +15,6 @@ DIR_TYPR = ['JPEGImages', 'Annotations']
 class FilesOp(object):
     def __init__(self):
         super(FilesOp, self).__init__()
-        print("init {0} ......".format('FilesOp'))
 
     def get_abs_path(self, file_dir, files_list):
         return [os.path.join(file_dir, f_item) for f_item in files_list]
@@ -147,15 +146,15 @@ class FilesOp(object):
             dep_files += self.get_abs_path(item, os.listdir(item))
         return dep_files
 
-    def rename_class_dir(self, root_dir, add_name_str):
+    def rename_class_dir(self, root_dir, before_cls_str='other'):
         all_files = loop(root_dir, ['.jpg'])
         all_dirs = dict([(item, 1) for item in all_files])
 
         for class_dir in all_dirs:
             class_dir_name = os.path.dirname(class_dir)
-            set_name = class_dir_name.replace(os.path.basename(class_dir_name), add_name_str + os.path.basename(class_dir_name))
+            set_name = class_dir_name.replace(os.path.basename(class_dir_name), before_cls_str + os.path.basename(class_dir_name))
 
-            if not class_dir.startswith(add_name_str):
+            if not class_dir.startswith(before_cls_str):
                 try:
                     os.renames(class_dir_name, set_name)
                     print("rename {0} as {1}".format(os.path.basename(class_dir_name), os.path.basename(set_name)))
