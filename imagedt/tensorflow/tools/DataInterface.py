@@ -105,15 +105,3 @@ class DataSets(object):
 
     def set_y_shape(self, y_shape):
         self._y_shape = y_shape
-
-if __name__ == '__main__':
-    minist = DataSets()
-    minist.train.set_x(np.zeros([10, 10]))
-    minist.train.set_y([3]*10)
-    minist.test.set_x(np.zeros([10, 10]))
-    minist.test.set_y(np.zeros([10]))
-
-    for _ in range(1):
-        x, y = minist.train.next_batch(32, isFixed=False)
-        print y
-        print x
