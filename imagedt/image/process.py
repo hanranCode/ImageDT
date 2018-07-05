@@ -56,7 +56,6 @@ def noise_padd(img, edge_size=224):
     return img
 
 
-
 def remove_broken_image(data_dir):
     image_files = loop(data_dir, IMG_EXTENSIONS)
 
@@ -72,4 +71,56 @@ def remove_broken_image(data_dir):
             print('remove broken file {0}'.format(image_file))
 
 
+def resize_with_scale(cvmat, max_length):
+    h, w, _ = cvmat.shape
+    max_edge = max(h, w)
+    if max_edge > max_length:
+        ratio = float(max_edge) / max_length
+        width, height = w/ratio, h/ratio
+        cvmat = cv2.resize(cvmat, (int(width), int(height)))
+    return cvmat
 
+
+def padd_pixel(img, edge_size_w=200, edge_size_h=96):
+    h, w, _ = img.shape
+
+    width_ratio = float(w) / edge_size_w
+    if width_ratio > 1:
+        img = cv2.resize(img, (int(w/width_ratio), int(h/width_ratio)))
+        h, w, _ = img.shape
+        width_ratio = float(w) / edge_size_w
+
+    height_ratio = float(h) / edge_size_h
+    if height_ratio > 1:
+        img = cv2.resize(img, (int(w/height_ratio), int(h/height_ratio)))
+        h, w, _ = img.shape
+        height_ratio = float(h) / edge_size_h
+
+    if width_ratio > height_ratio:
+        resize_width = edge_size_w
+        resize_height = int(round(h / width_ratio))
+        if (edge_size_h - resize_height) % 2 == 1:
+            resize_height += 1
+    else:
+        resize_height = edge_size_h
+        resize_width = int(round(w / height_ratio))
+        if (edge_size_w - resize_width) % 2 == 1:
+            resize_width += 1
+    img = cv2.resize(img, (int(resize_width), int(resize_height)), interpolation=cv2.INTER_LINEAR)
+
+    channels = 3
+    if width_ratio > height_ratio:
+        padding = (edge_size_h - resize_height) / 2
+        noise_size = (padding, edge_size_w)
+        if channels > 1:
+            noise_size += (channels,)
+        noise = np.random.randint(230, 240, noise_size).astype('uint8')
+        img = np.concatenate((noise, img, noise), axis=0)
+    else:
+        padding = (edge_size_w - resize_width) / 2
+        noise_size = (edge_size_h, padding)
+        if channels > 1:
+            noise_size += (channels,)
+        noise = np.random.randint(230, 240, noise_size).astype('uint8')
+        img = np.concatenate((noise, img, noise), axis=1)
+    return img

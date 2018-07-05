@@ -5,7 +5,7 @@ from __future__ import print_function
 import os
 import cv2
 import uuid
-import nose.tools as ntools
+from nose import tools as ntools
 
 from ..dir.dir_loop import loop
 

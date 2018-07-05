@@ -7,8 +7,8 @@ import os
 import cPickle
 import numpy as np
 
-from .file_write import write_txt
-from ..dir.dir_loop import loop
+from imagedt.file import write_txt
+from imagedt.dir.dir_loop import loop
 
 
 def parse_rec(filename):
@@ -21,27 +21,27 @@ def parse_rec(filename):
         # obj_struct['pose'] = obj.find('pose').text
         # obj_struct['truncated'] = int(obj.find('truncated').text)
         obj_struct['difficult'] = 0
+
+        obj_struct['confidence'] = obj.find('name').text if obj.find('confidence') is not None else 0.99
         bbox = obj.find('bndbox')
         obj_struct['bbox'] = [float(bbox.find('xmin').text),
                               float(bbox.find('ymin').text),
                               float(bbox.find('xmax').text),
                               float(bbox.find('ymax').text)]
         objects.append(obj_struct)
-
     return objects
+
 
 def parse_detect(detannos):
     xmls_path = loop(detannos, ['.xml'])
 
     infos = []
-    confidence = 0.9
     for xml_path in xmls_path:
         info = parse_rec(xml_path)
-
         basename = os.path.basename(xml_path)
-        infos.append([os.path.splitext(basename)[0], [item['bbox'] for item in info]])
+        infos.append([os.path.splitext(basename)[0], [[item['confidence']]+[item['name']]+item['bbox'] for item in info]])
 
-    return [[item[0], confidence, item[1]] for item in infos]
+    return [[item[0], item[1]] for item in infos]
 
 
 def voc_ap(rec, prec, use_07_metric=False):
@@ -83,12 +83,12 @@ def get_xmls_basename(xml_path):
 
 def voc_eval(detpath,
              annopath,
-             classname,
              ovthresh=0.5,
-             use_07_metric=False):
+             use_07_metric=False,
+             metric_type='f1_mean_score'):
 
     # read list of images
-    xmlnames = get_xmls_basename(detpath)
+    xmlnames = get_xmls_basename(annopath)
     # load gt
     recs = {}
     for i, imagename in enumerate(xmlnames):
@@ -100,28 +100,28 @@ def voc_eval(detpath,
     class_recs = {}
     npos = 0
     for imagename in xmlnames:
-        R = [obj for obj in recs[imagename] if obj['name'] == classname]
+        # R = [obj for obj in recs[imagename] if obj['name'] == classname]
+        R = [obj for obj in recs[imagename]]
+
         bbox = np.array([x['bbox'] for x in R])
         difficult = np.array([x['difficult'] for x in R]).astype(np.bool)
+        classes = np.array([x['name'] for x in R])
         det = [False] * len(R)
         npos = npos + sum(~difficult)
         class_recs[imagename] = {'bbox': bbox,
                                  'difficult': difficult,
-                                 'det': det}
+                                 'det': det,
+                                 'classes':classes}
 
-    # read dets
-    if os.path.isfile(detpath):
-        detfile = detpath.format(classname)
-        with open(detfile, 'r') as f:
-            lines = f.readlines()
-        splitlines = [x.strip().split(' ') for x in lines]
-    else:
-        lines = parse_detect(detpath)
-        splitlines = [[item[0]]+[item[1]] + x for item in lines for x in item[2]]
+    # read detect results 
+    # splitlines = [x.strip().split(' ') for x in lines]
+    lines = parse_detect(detpath)
+    splitlines = [[item[0]]+x for item in lines for x in item[1]]
 
     image_ids = [x[0] for x in splitlines]
     confidence = np.array([float(x[1]) for x in splitlines])
-    BB = np.array([[float(z) for z in x[2:]] for x in splitlines])
+    det_classes = np.array([x[2] for x in splitlines])
+    BB = np.array([[float(z) for z in x[3:]] for x in splitlines])
 
     # sort by confidence
     sorted_ind = np.argsort(-confidence)
@@ -133,6 +133,10 @@ def voc_eval(detpath,
     nd = len(image_ids)
     tp = np.zeros(nd)
     fp = np.zeros(nd)
+
+    cls_tp = np.zeros(nd)
+    cls_fp = np.zeros(nd)
+
     for d in range(nd):
         R = class_recs[image_ids[d]]
         bb = BB[d, :].astype(float)
@@ -166,16 +170,29 @@ def voc_eval(detpath,
                     R['det'][jmax] = 1
                 else:
                     fp[d] = 1.
+                # cls correct
+                if det_classes[d] == R['classes'][jmax]:
+                    cls_tp[d] = 1.
+                else:
+                    cls_fp[d] = 1.
         else:
             fp[d] = 1.
+            cls_fp[d] = 1.
 
     # compute precision recall
-    fp = np.cumsum(fp)
-    tp = np.cumsum(tp)
-    rec = tp / float(npos)
-    # avoid divide by zero in case the first detection matches a difficult
-    # ground truth
-    prec = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
-    ap = voc_ap(rec, prec, use_07_metric)
-
-    return rec, prec, ap
+    if metric_type == 'f1_mean_score':
+        cls_fp = np.sum(cls_fp)
+        cls_tp = np.sum(cls_tp)
+        rec = np.sum(tp) / float(np.sum(tp)+np.sum(fp))
+        prec = cls_tp / np.maximum(cls_tp + cls_fp, np.finfo(np.float64).eps)
+        f1_mean_score = 2*(rec*prec)/(rec+prec)
+        return f1_mean_score
+    else:
+        fp = np.cumsum(fp)
+        tp = np.cumsum(tp)
+        rec = tp / float(npos)
+        # avoid divide by zero in case the first detection matches a difficult
+        # ground truth
+        prec = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
+        ap = voc_ap(rec, prec, use_07_metric)
+        return ap

@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
 	name = 'imagedt',
-	version = '0.0.14',
+	version = '0.0.17',
 	keywords = ('imagedt'),
 	description = 'a python lib for neural networks, file and image processing etc. ',
 	license = 'Apache License 2.0',

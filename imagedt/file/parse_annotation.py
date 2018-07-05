@@ -121,11 +121,13 @@ class Anno_OP(object):
                 continue
             vocObject = etree.SubElement(annotation, "object")
             name = etree.SubElement(vocObject, "name")
-
             name.text = classes
 
             desc = etree.SubElement(vocObject, "desc")
             desc.text = unicode('object', 'utf-8')
+
+            confi = etree.SubElement(vocObject, "confidence")
+            confi.text = str(scores[index])
 
             # xmin ,ymin, xmax, ymax
             xmins, ymins, xmaxs, ymaxs = map(str, loca_info)
