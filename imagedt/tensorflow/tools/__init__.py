@@ -5,3 +5,4 @@ from __future__ import print_function
 # from . import data_converters
 # from . import dataset_util
 from .DataInterface import *
+from .loss import *
