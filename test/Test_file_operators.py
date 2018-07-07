@@ -85,13 +85,17 @@ class Test_File_operators(object):
         self.parse_tools.write_xml(bndboxs, scores, xmlname, thresh=0.2, classes='3488')
 
     def detect_eval_map(self):
-        detpath = '/ssd_data/price_tag/detect/test_datas/test/Annotations'
-        annopath = '/ssd_data/price_tag/detect/test_datas/test/Annotations2'
-        metric_value = detect_eval.voc_eval(detpath, annopath,
+        detpath = '/data/dataset/pg_one/unilever_final/datas/val/out/Annotations'
+        annopath = '/data/dataset/pg_one/unilever_final/datas/val/Annotations'
+        metric_type = 'f1_score'
+        metric_values = detect_eval.voc_eval(detpath, annopath,
                                                      ovthresh=0.5,
-                                                     use_07_metric=False,
-                                                     metric_type='f1_mean_score')
-        return metric_value
+                                                     use_07_metric=True,
+                                                     metric_type=metric_type)
+        metric_type = metric_type if metric_type == 'f1_score' else 'map'
+        for det_cls in metric_values:
+            print "{0} {1}: {2}".format(det_cls, metric_type, metric_values[det_cls])
+        print '{0} mean: {1}'.format(metric_type, sum(metric_values.values())/ len(metric_values.values()))
 
 
 if __name__ == '__main__':
@@ -103,6 +107,4 @@ if __name__ == '__main__':
     # File_operate_init.test_converte_detect_records()
     # File_operate_init.rename_xml_cls_name()
     # File_operate_init.test_write_xml_with_boxandscore()
-
-    metric_value = File_operate_init.detect_eval_map()
-    print "mean ap: {0}".format(metric_value)
+    File_operate_init.detect_eval_map()
