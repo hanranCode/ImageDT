@@ -202,27 +202,24 @@ def voc_eval(detpath,
                 fp[d] = 1.
                 cls_fp[d] = 1.
 
-        # import pdb
-        # pdb.set_trace()
         # compute precision recall
         if metric_type == 'f1_score':
             cls_fp = np.sum(cls_fp)
             cls_tp = np.sum(cls_tp)
-            rec = np.sum(tp) / float(np.sum(tp)+np.sum(fp))
-            prec = cls_tp / np.maximum(cls_tp + cls_fp, np.finfo(np.float64).eps)
+            rec = round(np.sum(tp) /float(npos), 4)
+            prec = round(cls_tp / np.maximum(cls_tp + cls_fp, np.finfo(np.float64).eps), 4)
+            print ("class {0}: rec {1}, prec {2}".format(gt_cls, rec, prec))
             f1_mean_score = 2*(rec*prec)/np.maximum(rec+prec, np.finfo(np.float64).eps)
-            f1_scores[gt_cls] = f1_mean_score
-            # return f1_mean_score
+            f1_scores[gt_cls] = round(f1_mean_score, 4)
         else:
             fp = np.cumsum(fp)
             tp = np.cumsum(tp)
             rec = tp / float(npos)
             # avoid divide by zero in case the first detection matches a difficult
-            # ground truth
             prec = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
             ap = voc_ap(rec, prec, use_07_metric)
-            # return ap
-            maps[gt_cls] = ap
+            maps[gt_cls] = round(ap, 4)
+            print ("class {0}: Ap {1}".format(gt_cls, round(ap, 4)))
     if metric_type == 'f1_score':
         return f1_scores
     else:
