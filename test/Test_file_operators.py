@@ -85,15 +85,11 @@ class Test_File_operators(object):
         self.parse_tools.write_xml(bndboxs, scores, xmlname, thresh=0.2, classes='3488')
 
     def detect_eval_map(self):
-        detpath = '/data/dataset/pg_one/PG/final_own_datas/unilever_final_0707/two_step_test/Annotations'
+        detpath = '/data/dataset/pg_one/PG/final_own_datas/unilever_final_0707/two_step_test/seresnet101_base_imagenet/Annotations'
         annopath = '/data/dataset/pg_one/PG/final_own_datas/unilever_final_0707/val/Annotations'
-        metric_type = 'f1_score'
-        metric_values = detect_eval.voc_eval(detpath, annopath,
-                                                     ovthresh=0.5,
-                                                     use_07_metric=True,
-                                                     metric_type=metric_type)
-        metric_type = metric_type if metric_type == 'f1_score' else 'map'
-        print 'mean {0}: {1}'.format(metric_type, sum(metric_values.values())/ len(metric_values.values()))
+        f1_score = detect_eval.voc_eval(detpath, annopath, ovthresh=0.5)
+
+        print 'mean f1-score: {0}'.format(f1_score)
 
 
 if __name__ == '__main__':

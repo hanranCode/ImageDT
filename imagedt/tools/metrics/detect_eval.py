@@ -87,140 +87,102 @@ def get_xmls_basename(xml_path):
     return [os.path.splitext(os.path.basename(item))[0] for item in loop(xml_path, ['.xml'])]
 
 
-def voc_eval(detpath,
-             annopath,
-             ovthresh=0.5,
-             use_07_metric=False,
-             metric_type='f1_score'):
-
+def voc_eval(detpath, annopath, ovthresh=0.5):
     ################### read detect results##################
     xmlnames = get_xmls_basename(annopath)
     # load gt
     recs = {}
-    gt_cls = []
     for i, imagename in enumerate(xmlnames):
         recs[imagename] = parse_rec(os.path.join(annopath, '{0}.xml').format(imagename))
-        gt_cls.append(recs[imagename].keys())
     print('########## Reading {0} annotation files of GT.##########'.format(len(xmlnames)))
 
-    ################### read detect results##################
-    # splitlines = [x.strip().split(' ') for x in lines]
+    # extract gt objects
+    class_recs = {}
+    npos = 0
+    for imagename in xmlnames:
+        R = [obj for objs in recs[imagename].values() for obj in objs]
+        bbox = np.array([x['bbox'] for x in R])
+        difficult = np.array([x['difficult'] for x in R]).astype(np.bool)
+        classes = np.array([x['name'] for x in R])
+        det = [False] * len(R)
+        npos = npos + sum(~difficult)
+        class_recs[imagename] = {'bbox': bbox,
+                                 'difficult': difficult,
+                                 'det': det,
+                                 'classes':classes}
+
+    ################### read detect results ##################
     lines = parse_detect(detpath)
     splitlines = [[item[0]]+x for item in lines for x in item[1]]
-    # add dict classes
+    image_ids = [x[0] for x in splitlines]
+    confidence = np.array([float(x[1]) for x in splitlines])
+    det_classes = np.array([x[2] for x in splitlines])
+    BB = np.array([[float(z) for z in x[3:]] for x in splitlines])
 
-    classes_dict = {}
-    [classes_dict.setdefault(line[2], []).append(line) for line in splitlines]
+    # sort by confidence
+    sorted_ind = np.argsort(-confidence)
+    sorted_scores = np.sort(-confidence)
+    BB = BB[sorted_ind, :]
+    image_ids = [image_ids[x] for x in sorted_ind]
 
-    # extract gt objects for this class
-    maps = {}
-    f1_scores = {}
-    gt_clses = set([item for items in gt_cls for item in items])
-    for gt_cls in gt_clses:
-        if gt_cls not in classes_dict:
-            f1_scores[gt_cls] = 0
-            maps[gt_cls] = 0
-            continue
-        class_recs = {}
-        npos = 0
-        for imagename in xmlnames:
-            # R = [obj for obj in recs[imagename] if obj['name'] == classname]
-            R = [obj for key_cls in recs[imagename] for obj in recs[imagename][key_cls] if key_cls == gt_cls]
+    # go down dets and mark TPs and FPs
+    nd = len(image_ids)
+    tp = np.zeros(nd)
+    fp = np.zeros(nd)
 
-            bbox = np.array([x['bbox'] for x in R])
-            difficult = np.array([x['difficult'] for x in R]).astype(np.bool)
-            classes = np.array([x['name'] for x in R])
-            det = [False] * len(R)
-            npos = npos + sum(~difficult)
-            class_recs[imagename] = {'bbox': bbox,
-                                     'difficult': difficult,
-                                     'det': det,
-                                     'classes':classes}
+    cls_tp = np.zeros(nd)
+    cls_fp = np.zeros(nd)
 
+    for d in range(nd):
+        R = class_recs[image_ids[d]]
+        bb = BB[d, :].astype(float)
+        ovmax = -np.inf
+        BBGT = R['bbox'].astype(float)
 
-        # test detection results
-        splitlines = classes_dict[gt_cls]
-        image_ids = [x[0] for x in splitlines]
-        confidence = np.array([float(x[1]) for x in splitlines])
-        det_classes = np.array([x[2] for x in splitlines])
-        BB = np.array([[float(z) for z in x[3:]] for x in splitlines])
+        if BBGT.size > 0:
+            # compute overlaps
+            # intersection
+            ixmin = np.maximum(BBGT[:, 0], bb[0])
+            iymin = np.maximum(BBGT[:, 1], bb[1])
+            ixmax = np.minimum(BBGT[:, 2], bb[2])
+            iymax = np.minimum(BBGT[:, 3], bb[3])
+            iw = np.maximum(ixmax - ixmin + 1., 0.)
+            ih = np.maximum(iymax - iymin + 1., 0.)
+            inters = iw * ih
 
-        # sort by confidence
-        sorted_ind = np.argsort(-confidence)
-        sorted_scores = np.sort(-confidence)
-        BB = BB[sorted_ind, :]
-        image_ids = [image_ids[x] for x in sorted_ind]
+            # union
+            uni = ((bb[2] - bb[0] + 1.) * (bb[3] - bb[1] + 1.) +
+                   (BBGT[:, 2] - BBGT[:, 0] + 1.) *
+                   (BBGT[:, 3] - BBGT[:, 1] + 1.) - inters)
 
-        # go down dets and mark TPs and FPs
-        nd = len(image_ids)
-        tp = np.zeros(nd)
-        fp = np.zeros(nd)
+            overlaps = inters / uni
+            ovmax = np.max(overlaps)
+            jmax = np.argmax(overlaps)
 
-        cls_tp = np.zeros(nd)
-        cls_fp = np.zeros(nd)
-
-        for d in range(nd):
-            R = class_recs[image_ids[d]]
-            bb = BB[d, :].astype(float)
-            ovmax = -np.inf
-            BBGT = R['bbox'].astype(float)
-
-            if BBGT.size > 0:
-                # compute overlaps
-                # intersection
-                ixmin = np.maximum(BBGT[:, 0], bb[0])
-                iymin = np.maximum(BBGT[:, 1], bb[1])
-                ixmax = np.minimum(BBGT[:, 2], bb[2])
-                iymax = np.minimum(BBGT[:, 3], bb[3])
-                iw = np.maximum(ixmax - ixmin + 1., 0.)
-                ih = np.maximum(iymax - iymin + 1., 0.)
-                inters = iw * ih
-
-                # union
-                uni = ((bb[2] - bb[0] + 1.) * (bb[3] - bb[1] + 1.) +
-                       (BBGT[:, 2] - BBGT[:, 0] + 1.) *
-                       (BBGT[:, 3] - BBGT[:, 1] + 1.) - inters)
-
-                overlaps = inters / uni
-                ovmax = np.max(overlaps)
-                jmax = np.argmax(overlaps)
-
-            if ovmax > ovthresh:
-                if not R['difficult'][jmax]:
-                    if not R['det'][jmax]:
-                        tp[d] = 1.
-                        R['det'][jmax] = 1
-                    else:
-                        fp[d] = 1.
-                    # cls correct
+        if ovmax > ovthresh:
+            if not R['difficult'][jmax]:
+                if not R['det'][jmax]:
+                    tp[d] = 1.
+                    R['det'][jmax] = 1
+                    # cls correct           
                     assert type(det_classes[d]) == type(R['classes'][jmax])
+                    # det_classes[d] str : '0' 
                     if det_classes[d] == R['classes'][jmax]:
                         cls_tp[d] = 1.
                     else:
                         cls_fp[d] = 1.
-            else:
-                fp[d] = 1.
-                cls_fp[d] = 1.
-
-        # compute precision recall
-        if metric_type == 'f1_score':
-            cls_fp = np.sum(cls_fp)
-            cls_tp = np.sum(cls_tp)
-            rec = round(np.sum(tp) /float(npos), 4)
-            prec = round(cls_tp / np.maximum(cls_tp + cls_fp, np.finfo(np.float64).eps), 4)
-            print ("class {0}: rec {1}, prec {2}".format(gt_cls, rec, prec))
-            f1_mean_score = 2*(rec*prec)/np.maximum(rec+prec, np.finfo(np.float64).eps)
-            f1_scores[gt_cls] = round(f1_mean_score, 4)
+                else:
+                    fp[d] = 1.
+                    cls_fp[d] = 1.
         else:
-            fp = np.cumsum(fp)
-            tp = np.cumsum(tp)
-            rec = tp / float(npos)
-            # avoid divide by zero in case the first detection matches a difficult
-            prec = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
-            ap = voc_ap(rec, prec, use_07_metric)
-            maps[gt_cls] = round(ap, 4)
-            print ("class {0}: Ap {1}".format(gt_cls, round(ap, 4)))
-    if metric_type == 'f1_score':
-        return f1_scores
-    else:
-        return maps
+            fp[d] = 1.
+            cls_fp[d] = 1.
+    # tp+fp equal all samples
+    assert len(cls_tp) == sum(cls_fp + cls_tp)
+
+    prec = float(sum(cls_tp)) / np.maximum(sum(cls_fp+cls_tp), np.finfo(np.float64).eps)
+    rec = float(sum(tp)) / np.maximum(npos, np.finfo(np.float64).eps)
+    f1_score = round(2*(prec*rec)/np.maximum((prec+rec), np.finfo(np.float64).eps), 4)
+    print ("########## f1-score: {0} ##########".format(f1_score))
+
+    return f1_score
