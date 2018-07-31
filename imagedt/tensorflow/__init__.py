@@ -6,4 +6,4 @@ from __future__ import print_function
 # from . import optim
 # from . import trainer
 # from . import tools
-# from . import lite
+from . import lite

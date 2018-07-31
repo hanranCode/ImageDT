@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import numpy as np
 from tensorflow.contrib.lite.python import interpreter as interpreter_wrapper
 
 
@@ -15,7 +16,7 @@ class Lite_Wrapper(object):
 
   def load_model(self):
     # load tflite model
-    self.interpreter = interpreter_wrapper.Interpreter(model_path=model_file)
+    self.interpreter = interpreter_wrapper.Interpreter(model_path=self.model_path)
     self.interpreter.allocate_tensors()
     self.input_details = self.interpreter.get_input_details()
     self.output_details = self.interpreter.get_output_details()
