@@ -11,7 +11,15 @@ from ..dir.dir_loop import loop
 IMG_EXTENSIONS = ['.jpg', '.JPG', '.jpeg', '.JPEG', '.png', '.PNG', '.ppm', '.PPM', '.bmp', '.BMP']
 
 
-def noise_padd(img, edge_size=224):
+def reduce_imagenet_mean(cv_mat):
+  _R_MEAN = 123.
+  _G_MEAN = 117.
+  _B_MEAN = 104.
+  [B, G, R] = cv2.split(cv_mat)
+  return cv2.merge([B-_B_MEAN, G-_G_MEAN, R-_R_MEAN])
+
+
+def noise_padd(img, edge_size=224, start_pixel_value=0):
     """
     img: cvMat
     edge_size: image max edge
@@ -37,19 +45,19 @@ def noise_padd(img, edge_size=224):
     channels = 3
     # fill ends of dimension that is too short with random noise
     if width_ratio > height_ratio:
-        padding = int((edge_size - resize_height) / 2)
+        padding = (edge_size - resize_height) / 2
         noise_size = (padding, edge_size)
         if channels > 1:
             noise_size += (channels,)
-        noise = np.random.randint(255, 256, noise_size).astype('uint8')
+        noise = np.random.randint(start_pixel_value, 256, noise_size).astype('uint8')
         # noise = np.zeros(noise_size).astype('uint8')
         img = np.concatenate((noise, img, noise), axis=0)
     else:
-        padding = int((edge_size - resize_width) / 2)
+        padding = (edge_size - resize_width) / 2
         noise_size = (edge_size, padding)
         if channels > 1:
             noise_size += (channels,)
-        noise = np.random.randint(255, 256, noise_size).astype('uint8')
+        noise = np.random.randint(start_pixel_value, 256, noise_size).astype('uint8')
         # noise = np.zeros(noise_size).astype('uint8')
         img = np.concatenate((noise, img, noise), axis=1)
 
