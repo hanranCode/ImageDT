@@ -6,4 +6,5 @@ from __future__ import print_function
 # from . import dataset_util
 from .DataInterface import *
 from .loss import *
-from .disp_tfrecords import *
+from .tfrecords import *
+from .tfmodel_wrapper import *
