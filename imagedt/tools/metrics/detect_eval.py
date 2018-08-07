@@ -45,49 +45,34 @@ def parse_detect(detannos):
         info = parse_rec(xml_path)
         info = [item for cls_key in info for item in info[cls_key]]
         basename = os.path.basename(xml_path)
-        infos.append([os.path.splitext(basename)[0], [[item['confidence']]+[item['name']]+item['bbox'] for item in info]])
+        infos.append([os.path.splitext(basename)[0], 
+            [[item['confidence']]+[item['name']]+item['bbox'] for item in info]])
 
     return [[item[0], item[1]] for item in infos]
 
 
-def voc_ap(rec, prec, use_07_metric=False):
-    """ ap = voc_ap(rec, prec, [use_07_metric])
-    Compute VOC AP given precision and recall.
-    If use_07_metric is true, uses the
-    VOC 07 11 point method (default:False).
-    """
-    if use_07_metric:
-        # 11 point metric
-        ap = 0.
-        for t in np.arange(0., 1.1, 0.1):
-            if np.sum(rec >= t) == 0:
-                p = 0
-            else:
-                p = np.max(prec[rec >= t])
-            ap = ap + p / 11.
-    else:
-        # correct AP calculation
-        # first append sentinel values at the end
-        mrec = np.concatenate(([0.], rec, [1.]))
-        mpre = np.concatenate(([0.], prec, [0.]))
-
-        # compute the precision envelope
-        for i in range(mpre.size - 1, 0, -1):
-            mpre[i - 1] = np.maximum(mpre[i - 1], mpre[i])
-
-        # to calculate area under PR curve, look for points
-        # where X axis (recall) changes value
-        i = np.where(mrec[1:] != mrec[:-1])[0]
-
-        # and sum (\Delta recall) * prec
-        ap = np.sum((mrec[i + 1] - mrec[i]) * mpre[i + 1])
-    return ap
+def load_detect_lines(detannos, conf):
+    txts_path = loop(detannos, ['.txt'])
+    print('########## Reading {0} annotation files of DT.##########'.format(len(txts_path)))
+    infos = []
+    for txt_path in txts_path:
+        with open(txt_path, 'r') as f:
+            lines = f.readlines()
+        true_class = os.path.basename(txt_path).split('.')[0].split('_')[-1]
+        # 图片名[无后缀] 置信度 x1 y1 x2 y2
+        # target: image_name, conf, det_class, [xmin, ymin, xmax, ymax]
+        for line in lines:
+            line = line.strip().split(' ')
+            if float(line[1]) < conf:
+                continue
+            infos.append(line[0:2]+[true_class]+line[2:])
+    return infos
 
 def get_xmls_basename(xml_path):
     return [os.path.splitext(os.path.basename(item))[0] for item in loop(xml_path, ['.xml'])]
 
 
-def voc_eval(detpath, annopath, ovthresh=0.5):
+def voc_eval(detpath, annopath, ovthresh=0.5, det_file_type='xml', conf=0.5):
     ################### read detect results##################
     xmlnames = get_xmls_basename(annopath)
     # load gt
@@ -100,7 +85,10 @@ def voc_eval(detpath, annopath, ovthresh=0.5):
     class_recs = {}
     npos = 0
     for imagename in xmlnames:
-        R = [obj for objs in recs[imagename].values() for obj in objs]
+        if det_file_type == 'xml':
+            R = [obj for objs in recs[imagename].values() for obj in objs]
+        else:
+            R = [obj for objs in recs[imagename].values() for obj in objs if int(obj['name']) !=0]
         bbox = np.array([x['bbox'] for x in R])
         difficult = np.array([x['difficult'] for x in R]).astype(np.bool)
         classes = np.array([x['name'] for x in R])
@@ -112,8 +100,13 @@ def voc_eval(detpath, annopath, ovthresh=0.5):
                                  'classes':classes}
 
     ################### read detect results ##################
-    lines = parse_detect(detpath)
-    splitlines = [[item[0]]+x for item in lines for x in item[1]]
+    if det_file_type == 'xml':
+        lines = parse_detect(detpath)
+        # splitlines : image_name, conf, det_class, [xmin, ymin, xmax, ymax]
+        splitlines = [[item[0]]+x for item in lines for x in item[1]]
+    else:
+        splitlines = load_detect_lines(detpath, conf=conf)
+
     image_ids = [x[0] for x in splitlines]
     confidence = np.array([float(x[1]) for x in splitlines])
     det_classes = np.array([x[2] for x in splitlines])
@@ -121,8 +114,9 @@ def voc_eval(detpath, annopath, ovthresh=0.5):
 
     # sort by confidence
     sorted_ind = np.argsort(-confidence)
-    sorted_scores = np.sort(-confidence)
-    BB = BB[sorted_ind, :]
+    # sorted_scores = np.sort(-confidence)
+    BB = BB[sorted_ind]
+    det_classes = det_classes[sorted_ind]
     image_ids = [image_ids[x] for x in sorted_ind]
 
     # go down dets and mark TPs and FPs
@@ -132,6 +126,7 @@ def voc_eval(detpath, annopath, ovthresh=0.5):
 
     cls_tp = np.zeros(nd)
     cls_fp = np.zeros(nd)
+    other_tp = 0
 
     for d in range(nd):
         R = class_recs[image_ids[d]]
@@ -160,29 +155,36 @@ def voc_eval(detpath, annopath, ovthresh=0.5):
             jmax = np.argmax(overlaps)
 
         if ovmax > ovthresh:
-            if not R['difficult'][jmax]:
-                if not R['det'][jmax]:
-                    tp[d] = 1.
-                    R['det'][jmax] = 1
-                    # cls correct           
-                    assert type(det_classes[d]) == type(R['classes'][jmax])
-                    # det_classes[d] str : '0' 
-                    if det_classes[d] == R['classes'][jmax]:
-                        cls_tp[d] = 1.
-                    else:
-                        cls_fp[d] = 1.
+            # if not R['difficult'][jmax]:
+            if not R['det'][jmax]:
+                tp[d] = 1.
+                R['det'][jmax] = 1
+                if int(det_classes[d]) == int(R['classes'][jmax]):
+                    # if int(R['classes'][jmax]) != 0:
+                        # cls_tp[d] = 1.
+                    cls_tp[d] = 1.
+                    if int(R['classes'][jmax]) == 0:
+                        other_tp += 1
                 else:
-                    fp[d] = 1.
                     cls_fp[d] = 1.
+            else:
+                fp[d] = 1.
+                cls_fp[d] = 1.
         else:
             fp[d] = 1.
-            cls_fp[d] = 1.
-    # tp+fp equal all samples
-    assert len(cls_tp) == sum(cls_fp + cls_tp)
+            if int(det_classes[d]) != 0:
+                cls_fp[d] = 1.
 
-    prec = float(sum(cls_tp)) / np.maximum(sum(cls_fp+cls_tp), np.finfo(np.float64).eps)
+    # tp+fp equal all samples
+    assert len(cls_tp) == len(cls_fp) # == sum(cls_fp + cls_tp)
+    # prec = float(sum(cls_tp)) / np.maximum(sum(cls_fp+cls_tp), np.finfo(np.float64).eps)
+    if det_file_type == 'txt':
+        prec = float(sum(cls_tp)-other_tp) / np.maximum(max(sum(cls_fp+cls_tp)-other_tp, npos), np.finfo(np.float64).eps)
+    else:
+        prec = float(sum(cls_tp)-other_tp) / np.maximum(sum(cls_fp+cls_tp)-other_tp, np.finfo(np.float64).eps)
     rec = float(sum(tp)) / np.maximum(npos, np.finfo(np.float64).eps)
     f1_score = round(2*(prec*rec)/np.maximum((prec+rec), np.finfo(np.float64).eps), 4)
-    print ("########## f1-score: {0} ##########".format(f1_score))
-
+    print("ground truth: {0}, detect results {1}".format(npos, nd))
+    print ("#### recall: {0}, prec: {1} ####".format(round(rec, 4), round(prec, 4)))
+    print ("#### f1-score: {0} ##########".format(f1_score))
     return f1_score
