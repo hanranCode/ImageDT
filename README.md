@@ -7,9 +7,15 @@ Installation
     pip install imagedt <br>
 2. source install </font>
 
-    git clone https://github.com/hanranCode/ImageDT.git
-    cd ImageDT 
-    python setup.py install
+    #1  pip install imagedt
+    <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    #2  git clone https://github.com/hanranCode/ImageDT.git
+        cd ImageDT 
+        python setup.py install
+    <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    #3  vi ~/.bashrc
+        export PYTHONPATH="/path_to_ImageDT:$PYTHONPATH"
+        import imagedt in your project
 
 
 Dependencies

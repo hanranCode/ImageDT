@@ -13,11 +13,11 @@ class TFmodel_Wrapper(object):
     self.pbmodel_path = pbmodel_path
     self.input_node = input_nodename
     self.output_node = output_nodename
-    self.load_model()
+    self._load_model()
     self._check_node_name()
     self._set_output_node()
 
-  def load_model(self):
+  def _load_model(self):
     # easy way! load as default graph
     print("load tfmodel {0}".format(self.pbmodel_path))
     detection_graph = tf.Graph()
@@ -56,3 +56,9 @@ class TFmodel_Wrapper(object):
     predict_cls = output_dict[self.output_node][0].argsort()[::-1][0]
     conf = output_dict[self.output_node][0][predict_cls]
     return predict_cls, conf
+
+
+
+    # tf.Session(config=tf.ConfigProto(allow_soft_placement=False,
+    #                                     log_device_placement=True,
+    #                                     ))

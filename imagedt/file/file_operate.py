@@ -160,3 +160,5 @@ class FilesOp(object):
                     print("rename {0} as {1}".format(os.path.basename(class_dir_name), os.path.basename(set_name)))
                 except Exception as e:
                     print(class_dir_name)
+
+FilesOp = FilesOp()

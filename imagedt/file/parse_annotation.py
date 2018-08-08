@@ -147,3 +147,5 @@ class Anno_OP(object):
         xml = etree.tostring(annotation, pretty_print=True, encoding='UTF-8')
         with open(xmlname, "w") as xmlfile:
             xmlfile.write(xml)
+
+Anno_OP = Anno_OP()
