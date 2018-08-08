@@ -136,7 +136,7 @@ class Record_Writer(ImageReader):
     # read file, write to tfrecords
     self.convert_to_tfrecord(all_files, save_dir)
     # save error images
-    imagedt.file.write_txt(error_images, os.path.join(save_dir,'error_images.txt'))
+    imagedt.file.write_txt(self.error_images, os.path.join(save_dir,'error_images.txt'))
 
   def converte_anno_info(self, data_dir, det_cls_name='3488'):
     data_pairs = FilesOp.get_jpg_xml_pairs(data_dir)
