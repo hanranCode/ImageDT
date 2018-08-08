@@ -17,7 +17,7 @@ class Test_File_operators(object):
     def __init__(self):
         super(Test_File_operators, self).__init__()
         self.parse_tools = parse_annotation.Anno_OP
-        self.file_op = file_operate.FilesOp()
+        self.file_op = file_operate.FilesOp
         self.test_data_dir = './test/sources/data_dir'
         self.test_train_datas_dir = './test/sources/train_datas_dir'
 
