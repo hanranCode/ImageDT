@@ -11,8 +11,6 @@ from collections import OrderedDict
 from imagedt.file import write_txt
 from imagedt.dir.dir_loop import loop
 
-import pudb;pu.db
-
 
 def parse_rec(filename):
     """ Parse a PASCAL VOC xml file """
