@@ -72,7 +72,7 @@ def get_xmls_basename(xml_path):
     return [os.path.splitext(os.path.basename(item))[0] for item in loop(xml_path, ['.xml'])]
 
 
-def voc_eval(detpath, annopath, ovthresh=0.5, det_file_type='xml', conf=0.5):
+def voc_eval(detpath, annopath, gt_labels = ['9265','9304','9320','9282','9334','9273','9252','9294'], ovthresh=0.5, det_file_type='xml', conf=0.5):
     ################### read detect results##################
     xmlnames = get_xmls_basename(annopath)
     # load gt
@@ -87,6 +87,7 @@ def voc_eval(detpath, annopath, ovthresh=0.5, det_file_type='xml', conf=0.5):
     for imagename in xmlnames:
         if det_file_type == 'xml':
             R = [obj for objs in recs[imagename].values() for obj in objs]
+            #print(len(R))
         else:
             R = [obj for objs in recs[imagename].values() for obj in objs if int(obj['name']) !=0]
         bbox = np.array([x['bbox'] for x in R])
@@ -103,7 +104,17 @@ def voc_eval(detpath, annopath, ovthresh=0.5, det_file_type='xml', conf=0.5):
     if det_file_type == 'xml':
         lines = parse_detect(detpath)
         # splitlines : image_name, conf, det_class, [xmin, ymin, xmax, ymax]
-        splitlines = [[item[0]]+x for item in lines for x in item[1]]
+        #splitlines = [[item[0]]+x for item in lines for x in item[1]]
+        splitlines = []
+        for item in lines:
+            for x in item[1]:
+                #print(x)
+                #print("conf: {}\tthresh: {}".format(x[0], conf))
+                if float(x[0]) < conf:
+                    #print(x)
+                    x[1] = '0'
+                #print(x)
+                splitlines.append([item[0]]+x)
     else:
         splitlines = load_detect_lines(detpath, conf=conf)
 
@@ -127,6 +138,25 @@ def voc_eval(detpath, annopath, ovthresh=0.5, det_file_type='xml', conf=0.5):
     cls_tp = np.zeros(nd)
     cls_fp = np.zeros(nd)
     other_tp = 0
+
+    #gt_labels = ['9265','9304','9320','9282','9334','9273','9252','9294']
+    
+    tp = {}
+    for label in gt_labels:
+        if label not in tp.keys():
+            tp[label]=0 
+    fp = {}
+    for label in gt_labels:
+        if label not in fp.keys():
+            fp[label]=0 
+    tn = {}
+    for label in gt_labels:
+        if label not in tn.keys():
+            tn[label]=0 
+    fn = {}
+    for label in gt_labels:
+        if label not in fn.keys():
+            fn[label]=0 
 
     for d in range(nd):
         R = class_recs[image_ids[d]]
@@ -155,36 +185,51 @@ def voc_eval(detpath, annopath, ovthresh=0.5, det_file_type='xml', conf=0.5):
             jmax = np.argmax(overlaps)
 
         if ovmax > ovthresh:
-            # if not R['difficult'][jmax]:
             if not R['det'][jmax]:
-                tp[d] = 1.
                 R['det'][jmax] = 1
                 if int(det_classes[d]) == int(R['classes'][jmax]):
-                    # if int(R['classes'][jmax]) != 0:
-                        # cls_tp[d] = 1.
-                    cls_tp[d] = 1.
-                    if int(R['classes'][jmax]) == 0:
-                        other_tp += 1
+                    for label in gt_labels:
+                        if label == det_classes[d]:
+                            tp[label] += 1
+                        else:
+                            tn[label] += 1
                 else:
-                    cls_fp[d] = 1.
+                    for label in gt_labels:
+                        if label == det_classes[d]:
+                            fp[label] += 1
+                        elif label == R['classes'][jmax]:
+                            fn[label] += 1
+                        else:
+                            tn[label] += 1
             else:
-                fp[d] = 1.
-                cls_fp[d] = 1.
+                for label in gt_labels:
+                    if det_classes[d] not in gt_labels:
+                        tn[label] += 1
+                    else:
+                        fn[label] += 1
         else:
-            fp[d] = 1.
-            if int(det_classes[d]) != 0:
-                cls_fp[d] = 1.
+            for label in gt_labels:
+                if det_classes[d] not in gt_labels:
+                    tn[label] += 1
+                else:
+                    fn[label] += 1
+                
 
-    # tp+fp equal all samples
-    assert len(cls_tp) == len(cls_fp) # == sum(cls_fp + cls_tp)
-    # prec = float(sum(cls_tp)) / np.maximum(sum(cls_fp+cls_tp), np.finfo(np.float64).eps)
-    if det_file_type == 'txt':
-        prec = float(sum(cls_tp)-other_tp) / np.maximum(max(sum(cls_fp+cls_tp)-other_tp, npos), np.finfo(np.float64).eps)
-    else:
-        prec = float(sum(cls_tp)-other_tp) / np.maximum(sum(cls_fp+cls_tp)-other_tp, np.finfo(np.float64).eps)
-    rec = float(sum(tp)) / np.maximum(npos, np.finfo(np.float64).eps)
-    f1_score = round(2*(prec*rec)/np.maximum((prec+rec), np.finfo(np.float64).eps), 4)
     print("ground truth: {0}, detect results {1}".format(npos, nd))
-    print ("#### recall: {0}, prec: {1} ####".format(round(rec, 4), round(prec, 4)))
-    print ("#### f1-score: {0} ##########".format(f1_score))
-    return f1_score
+    precision = {}
+    recall = {}
+    f1_score = {}
+    for label in gt_labels:
+        if label == '0':
+            continue
+        print("Label: {}".format(label))
+        print("\ttp: {}\tfp: {}\ttn: {}\tfn: {}\ttotal: {}".format(tp[label],fp[label],tn[label],fn[label], sum([tp[label],fp[label],tn[label],fn[label]])))
+        precision[label] = tp[label] * 1.0 / (tp[label] + fp[label])
+        recall[label] = tp[label] * 1.0 / (tp[label] + fn[label])
+        f1_score[label] = round(2*(precision[label]*recall[label])/np.maximum((precision[label]+recall[label]), np.finfo(np.float64).eps), 4)
+        print ("\t#### recall: {0}, precision: {1} ####".format(round(recall[label], 4), round(precision[label], 4)))
+        print ("\t#### f1-score: {0} ##########".format(f1_score[label]))
+    
+    mean_f1 = np.mean(f1_score.values())
+    print("Mean F1: {}\n".format(mean_f1))
+    return mean_f1
