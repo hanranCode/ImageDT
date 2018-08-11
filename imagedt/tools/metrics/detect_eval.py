@@ -224,8 +224,8 @@ def voc_eval(detpath, annopath, gt_labels = ['9265','9304','9320','9282','9334',
             continue
         print("Label: {}".format(label))
         print("\ttp: {}\tfp: {}\ttn: {}\tfn: {}\ttotal: {}".format(tp[label],fp[label],tn[label],fn[label], sum([tp[label],fp[label],tn[label],fn[label]])))
-        precision[label] = tp[label] * 1.0 / (tp[label] + fp[label])
-        recall[label] = tp[label] * 1.0 / (tp[label] + fn[label])
+        precision[label] = tp[label] * 1.0 / np.maximum( (tp[label] + fp[label]), np.finfo(np.float64).eps)
+        recall[label] = tp[label] * 1.0 / np.maximum( (tp[label] + fn[label]), np.finfo(np.float64).eps)
         f1_score[label] = round(2*(precision[label]*recall[label])/np.maximum((precision[label]+recall[label]), np.finfo(np.float64).eps), 4)
         print ("\t#### recall: {0}, precision: {1} ####".format(round(recall[label], 4), round(precision[label], 4)))
         print ("\t#### f1-score: {0} ##########".format(f1_score[label]))
