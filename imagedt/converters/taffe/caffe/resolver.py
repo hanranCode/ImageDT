@@ -10,11 +10,12 @@ class CaffeResolver(object):
         self.caffe = None
         try:
             # Try to import PyCaffe first
-            sys.path.append('/data/project/idt-pitaya-serv-train/caffe/python')
+            # sys.path.append('/data/project/idt-pitaya-serv-train/caffe/python')
             import caffe
             self.caffe = caffe
-        except ImportError:
+        except Exception as e:
             # Fall back to the protobuf implementation
+            print e
             from . import caffe_pb2
             self.caffepb = caffe_pb2
             show_fallback_warning()
