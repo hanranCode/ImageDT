@@ -82,6 +82,7 @@ def voc_eval(detpath, annopath, gt_labels = ['9265','9304','9320','9282','9334',
     print('########## Reading {0} annotation files of GT.##########'.format(len(xmlnames)))
 
     # extract gt objects
+    gt_class_bbox = {}
     class_recs = {}
     npos = 0
     for imagename in xmlnames:
@@ -93,12 +94,19 @@ def voc_eval(detpath, annopath, gt_labels = ['9265','9304','9320','9282','9334',
         bbox = np.array([x['bbox'] for x in R])
         difficult = np.array([x['difficult'] for x in R]).astype(np.bool)
         classes = np.array([x['name'] for x in R])
+        for x in R:
+            label = x['name']
+            if label not in gt_class_bbox.keys():
+                gt_class_bbox[label] = 1
+            else:
+                gt_class_bbox[label] += 1
         det = [False] * len(R)
         npos = npos + sum(~difficult)
         class_recs[imagename] = {'bbox': bbox,
                                  'difficult': difficult,
                                  'det': det,
                                  'classes':classes}
+    print("Ground Truth bbox num: {}\nsum: {}".format(gt_class_bbox, sum(gt_class_bbox.values())))
 
     ################### read detect results ##################
     if det_file_type == 'xml':
@@ -121,6 +129,16 @@ def voc_eval(detpath, annopath, gt_labels = ['9265','9304','9320','9282','9334',
     image_ids = [x[0] for x in splitlines]
     confidence = np.array([float(x[1]) for x in splitlines])
     det_classes = np.array([x[2] for x in splitlines])
+    #
+    det_class_bbox = {}
+    for x in splitlines:
+        label = x[2]
+        if label not in det_class_bbox.keys():
+            det_class_bbox[label] = 1
+        else:
+            det_class_bbox[label] += 1
+    print("Predict bbox num: {}\nsum: {}".format(det_class_bbox,sum(det_class_bbox.values())))
+    #
     BB = np.array([[float(z) for z in x[3:]] for x in splitlines])
 
     # sort by confidence
@@ -203,17 +221,22 @@ def voc_eval(detpath, annopath, gt_labels = ['9265','9304','9320','9282','9334',
                             tn[label] += 1
             else:
                 for label in gt_labels:
-                    if det_classes[d] not in gt_labels:
+                    #if label != R['classes'][jmax]:
+                    if label != det_classes[d]:
                         tn[label] += 1
                     else:
-                        fn[label] += 1
+                        fp[label] += 1
         else:
             for label in gt_labels:
-                if det_classes[d] not in gt_labels:
+                if label != R['classes'][jmax]:
                     tn[label] += 1
                 else:
                     fn[label] += 1
                 
+    for label in gt_labels:
+        miss_gt = gt_class_bbox[label] - (tp[label] + fn[label])
+        if miss_gt > 0:
+            fn[label] += miss_gt
 
     print("ground truth: {0}, detect results {1}".format(npos, nd))
     precision = {}
