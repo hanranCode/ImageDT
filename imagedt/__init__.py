@@ -6,7 +6,7 @@ from .image import *
 from .caffe import *
 from .tensorflow import *
 from .torch import *
-from .converters import *
+from . import converters
 from .file import *
 from .decorator import *
 from .dir import *
