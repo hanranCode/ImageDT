@@ -72,7 +72,7 @@ def get_xmls_basename(xml_path):
     return [os.path.splitext(os.path.basename(item))[0] for item in loop(xml_path, ['.xml'])]
 
 
-def voc_eval(detpath, annopath, gt_labels = ['9265','9304','9320','9282','9334','9273','9252','9294'], ovthresh=0.5, det_file_type='xml', conf=0.5):
+def voc_eval(detpath, annopath, ovthresh=0.5, det_file_type='xml', conf=0.5, set_gt_labels=None):
     ################### read detect results##################
     xmlnames = get_xmls_basename(annopath)
     # load gt
@@ -157,8 +157,11 @@ def voc_eval(detpath, annopath, gt_labels = ['9265','9304','9320','9282','9334',
     cls_fp = np.zeros(nd)
     other_tp = 0
 
-    #gt_labels = ['9265','9304','9320','9282','9334','9273','9252','9294']
-    
+    if set_gt_labels is None:
+        gt_labels = ['9265','9304','9320','9282','9334','9273','9252','9294']
+    else:
+        gt_labels = set([ite for item in class_recs.values() for ite in item['classes']])
+
     tp = {}
     for label in gt_labels:
         if label not in tp.keys():
