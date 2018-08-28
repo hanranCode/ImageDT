@@ -257,5 +257,5 @@ def voc_eval(detpath, annopath, ovthresh=0.5, det_file_type='xml', conf=0.5, set
         print ("\t#### f1-score: {0} ##########".format(f1_score[label]))
     
     mean_f1 = np.mean(f1_score.values())
-    print("Mean F1: {}\n".format(mean_f1))
+    print("Mean F1: {}\n".format(round(mean_f1, 4)))
     return mean_f1
