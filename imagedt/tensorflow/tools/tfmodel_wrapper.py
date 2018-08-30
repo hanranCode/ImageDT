@@ -2,17 +2,17 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import numpy as np
 import tensorflow as tf
 
 
 class TFmodel_Wrapper(object):
   """docstring for TFmodel_Wrapper"""
-  def __init__(self, pbmodel_path, input_nodename='input', output_nodename='softmax',):
+  def __init__(self, pbmodel_path, input_nodename='input', output_nodename='softmax', gpu_id=0):
     super(TFmodel_Wrapper, self).__init__()
     self.pbmodel_path = pbmodel_path
     self.input_node = input_nodename
     self.output_node = output_nodename
+    self.gpu_id = gpu_id
     self._load_model()
     self._check_node_name()
     self._set_output_node()
@@ -20,6 +20,7 @@ class TFmodel_Wrapper(object):
   def _load_model(self):
     # easy way! load as default graph
     print("load tfmodel {0}".format(self.pbmodel_path))
+    # with tf.device('/gpu:'+str(self.gpu_id)):
     detection_graph = tf.Graph()
     with detection_graph.as_default():
       od_graph_def = tf.GraphDef()
@@ -27,7 +28,14 @@ class TFmodel_Wrapper(object):
       serialized_graph = fid.read()
       od_graph_def.ParseFromString(serialized_graph)
       tf.import_graph_def(od_graph_def, name='')
-    self.sess = tf.Session()
+
+    # GPU使用率
+    config = tf.ConfigProto() # device_count={'GPU': self.gpu_id} only gpu
+    # config.gpu_options.visible_device_list= str(self.gpu_id)
+    config.gpu_options.per_process_gpu_memory_fraction = 0.1  # 固定比例
+    config.gpu_options.allow_growth = True
+ 
+    self.sess = tf.Session(config=config)
 
   def _check_node_name(self):
     # checking input and output node name, notice, notice node name error
@@ -48,17 +56,17 @@ class TFmodel_Wrapper(object):
     self.image_tensor = tf.get_default_graph().get_tensor_by_name(intput_tensor)
     self.tensor_dict[self.output_node] = tf.get_default_graph().get_tensor_by_name(output_tensor)
 
-  def predict(self, image):
+  # from imagedt.decorator import time_cost
+  # @time_cost
+  def predict(self, images):
     # Run inference
-    output_dict = self.sess.run(self.tensor_dict, 
-                    feed_dict={self.image_tensor: np.expand_dims(image, axis=0)})
-    # get top 1 class and confidence
-    predict_cls = output_dict[self.output_node][0].argsort()[::-1][0]
-    conf = output_dict[self.output_node][0][predict_cls]
-    return predict_cls, conf
+    output_infos = self.sess.run(self.tensor_dict, feed_dict={self.image_tensor: images})[self.output_node]
+    infos = [] # get top 1 class and confidence
+    for index, info in enumerate(output_infos):
+      predict_cls = info.argsort()[::-1][0]
+      conf = info[predict_cls]
+      infos.append({'class':predict_cls, 'confidence': conf})
+    return infos
 
 
 
-    # tf.Session(config=tf.ConfigProto(allow_soft_placement=False,
-    #                                     log_device_placement=True,
-    #                                     ))
