@@ -10,13 +10,31 @@ from ..dir.dir_loop import loop
 
 IMG_EXTENSIONS = ['.jpg', '.JPG', '.jpeg', '.JPEG', '.png', '.PNG', '.ppm', '.PPM', '.bmp', '.BMP']
 
+_R_MEAN = 123.
+_G_MEAN = 117.
+_B_MEAN = 104.
+
+
 
 def reduce_imagenet_mean(cv_mat):
-  _R_MEAN = 123.
-  _G_MEAN = 117.
-  _B_MEAN = 104.
   [B, G, R] = cv2.split(cv_mat)
   return cv2.merge([B-_B_MEAN, G-_G_MEAN, R-_R_MEAN])
+
+
+def swap_chanel_to_RGB(cvmat):
+  B, G, R = cv2.split(cvmat)
+  return cv2.merge([R, G, B])
+
+
+def vgg_preprocesing(cvmat):
+  cvmat = np.array(cvmat, dtype=np.float32)
+  cvmat -= [_R_MEAN,_G_MEAN,_B_MEAN]
+  return cvmat
+
+def inception_preprocesing(cvmat):
+  cvmat = (cvmat / 255. - 0.5) * 2
+  cvmat = np.array(cvmat, dtype=np.float32)
+  return cvmat
 
 
 def noise_padd(img, edge_size=224, start_pixel_value=0):
@@ -60,7 +78,6 @@ def noise_padd(img, edge_size=224, start_pixel_value=0):
         noise = np.random.randint(start_pixel_value, 256, noise_size).astype('uint8')
         # noise = np.zeros(noise_size).astype('uint8')
         img = np.concatenate((noise, img, noise), axis=1)
-
     return img
 
 
@@ -132,3 +149,8 @@ def padd_pixel(img, edge_size_w=200, edge_size_h=96):
         noise = np.random.randint(230, 240, noise_size).astype('uint8')
         img = np.concatenate((noise, img, noise), axis=1)
     return img
+
+
+def swap_chanel_to_RGB(cvmat):
+  B, G, R = cv2.split(cvmat)
+  return cv2.merge([R, G, B])
