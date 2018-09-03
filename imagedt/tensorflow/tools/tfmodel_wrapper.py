@@ -68,5 +68,9 @@ class TFmodel_Wrapper(object):
       infos.append({'class':predict_cls, 'confidence': conf})
     return infos
 
-
-
+  # from imagedt.decorator import time_cost
+  # @time_cost
+  def extract(self, image):
+    features = [] 
+    output_infos = self.sess.run(self.tensor_dict, feed_dict={self.image_tensor: image})[self.output_node]
+    return output_infos[0][0]
