@@ -32,7 +32,7 @@ class TFmodel_Wrapper(object):
     # GPU使用率
     config = tf.ConfigProto() # device_count={'GPU': self.gpu_id} only gpu
     # config.gpu_options.visible_device_list= str(self.gpu_id)
-    config.gpu_options.per_process_gpu_memory_fraction = 0.1  # 固定比例
+    config.gpu_options.per_process_gpu_memory_fraction = 0.08  # 固定比例
     config.gpu_options.allow_growth = True
  
     self.sess = tf.Session(config=config)
@@ -56,8 +56,8 @@ class TFmodel_Wrapper(object):
     self.image_tensor = tf.get_default_graph().get_tensor_by_name(intput_tensor)
     self.tensor_dict[self.output_node] = tf.get_default_graph().get_tensor_by_name(output_tensor)
 
-  # from imagedt.decorator import time_cost
-  # @time_cost
+  from imagedt.decorator import time_cost
+  @time_cost
   def predict(self, images):
     # Run inference
     output_infos = self.sess.run(self.tensor_dict, feed_dict={self.image_tensor: images})[self.output_node]
@@ -73,4 +73,4 @@ class TFmodel_Wrapper(object):
   def extract(self, image):
     features = [] 
     output_infos = self.sess.run(self.tensor_dict, feed_dict={self.image_tensor: image})[self.output_node]
-    return output_infos[0][0]
+    return output_infos
