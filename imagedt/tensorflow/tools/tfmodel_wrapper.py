@@ -54,9 +54,14 @@ class TFmodel_Wrapper(object):
     self.image_tensor = tf.get_default_graph().get_tensor_by_name(intput_tensor)
     self.tensor_dict[self.output_node] = tf.get_default_graph().get_tensor_by_name(output_tensor)
 
+<<<<<<< HEAD
 
   # from imagedt.decorator import time_cost
   # @time_cost
+=======
+  from imagedt.decorator import time_cost
+  @time_cost
+>>>>>>> 4720af1a4252316dee63773e3315cb98c17a1b72
   def predict(self, images):
     # Run inference
     output_infos = self.sess.run(self.tensor_dict, feed_dict={self.image_tensor: images})[self.output_node]
@@ -72,4 +77,4 @@ class TFmodel_Wrapper(object):
   def extract(self, image):
     features = [] 
     output_infos = self.sess.run(self.tensor_dict, feed_dict={self.image_tensor: image})[self.output_node]
-    return output_infos[0][0]
+    return output_infos
