@@ -7,12 +7,13 @@ import tensorflow as tf
 
 class TFmodel_Wrapper(object):
   """docstring for TFmodel_Wrapper"""
-  def __init__(self, pbmodel_path, input_nodename='input', output_nodename='softmax', gpu_id=0):
+  def __init__(self, pbmodel_path, input_nodename='input', output_nodename='softmax', gpu_id=0, graph_name='classify'):
     super(TFmodel_Wrapper, self).__init__()
     self.pbmodel_path = pbmodel_path
     self.input_node = input_nodename
-    self.output_node = output_nodename
+    self.output_node = output_nodename.split(',')
     self.gpu_id = gpu_id
+    self.graph_name = graph_name
     self._load_model()
     self._check_node_name()
     self._set_output_node()
@@ -21,21 +22,18 @@ class TFmodel_Wrapper(object):
     # easy way! load as default graph
     print("load tfmodel {0}".format(self.pbmodel_path))
     # with tf.device('/gpu:'+str(self.gpu_id)):
-    detection_graph = tf.Graph()
-    with detection_graph.as_default():
-      od_graph_def = tf.GraphDef()
     with tf.gfile.GFile(self.pbmodel_path, 'rb') as fid:
-      serialized_graph = fid.read()
-      od_graph_def.ParseFromString(serialized_graph)
-      tf.import_graph_def(od_graph_def, name='')
+      graph_def = tf.GraphDef()
+      graph_def.ParseFromString(fid.read())
 
     # GPU使用率
-    config = tf.ConfigProto() # device_count={'GPU': self.gpu_id} only gpu
+    self.config = tf.ConfigProto() # device_count={'GPU': self.gpu_id} only gpu
     # config.gpu_options.visible_device_list= str(self.gpu_id)
-    config.gpu_options.per_process_gpu_memory_fraction = 0.1  # 固定比例
-    config.gpu_options.allow_growth = True
- 
-    self.sess = tf.Session(config=config)
+    self.config.gpu_options.per_process_gpu_memory_fraction = 0.1  # 固定比例
+    self.config.gpu_options.allow_growth = True
+
+    tf.import_graph_def(graph_def, name=self.graph_name)
+    self.sess = tf.Session(graph=tf.get_default_graph(), config=self.config)
 
   def _check_node_name(self):
     # checking input and output node name, notice, notice node name error
@@ -52,9 +50,10 @@ class TFmodel_Wrapper(object):
     # Get handles to input and output tensors
     self.tensor_dict = {}
     intput_tensor = self.input_node + ':0'
-    output_tensor = self.output_node + ':0'
+    output_tensor = self.output_node + ':0'+','+self.output_node + ':0'
     self.image_tensor = tf.get_default_graph().get_tensor_by_name(intput_tensor)
     self.tensor_dict[self.output_node] = tf.get_default_graph().get_tensor_by_name(output_tensor)
+
 
   # from imagedt.decorator import time_cost
   # @time_cost
