@@ -27,7 +27,7 @@ class PlotCurve(object):
     for class_name in class_names:
       if os.path.isfile(os.path.join(data_dir, class_name)):
         continue
-      if class_name.startswith('other') or class_name.startswith('0'):
+      if not class_name.startswith('other') or class_name.startswith('0'):
         continue
       pos_samples_dict[class_name] = len(imagedt.dir.loop(os.path.join(data_dir, class_name), ['.jpg', '.png']))
     return pos_samples_dict
@@ -43,16 +43,28 @@ class PlotCurve(object):
       height = rect.get_height()
       plt.text(rect.get_x() + rect.get_width() / 1.5, height, self.y[index], ha='center', va='bottom',fontsize=3)
 
-  def plot_datas(self, data_dir, add_bar_values=True, title=None):
+  def add_avg_yline(self):
+    line_arange = np.arange(0, len(self.x), len(self.x)/5.)
+    y_ite = [100, 200, 300, 400, 500]
+    for index, ite in enumerate(line_arange):
+      plt.axhline(y=int(y_ite[index]), color='blue')
+      plt.axvline(x=int(ite), color='blue')
+
+  def plot_datas(self, data_dir, add_bar_values=True, title=None, curve_type='bar'):
     print("loading data infos......")
     sample_dict = self.load_dataset_infos(data_dir)
     # get x,y values
     self.set_xy_values(sample_dict)
     # plot bar
-    rects = plt.bar(range(len(self.x)), self.y, color='rgby')
-    # plt.plot()
-    plt.ylim(ymin=0, ymax=max(self.y))
+    if curve_type == 'bar':
+      rects = plt.bar(range(len(self.x)), self.y, 1, align='edge', color='rgby')
+      if add_bar_values:
+        self.add_bar_values(rects)
+        self.add_avg_yline()
+    else:
+      plt.plot(self.x, self.y)
 
+    plt.ylim(ymin=0, ymax=max(self.y))
     add_str = '_'+str(len(self.x))+' classes'
     title = os.path.basename(data_dir)+add_str if title is None else title+add_str
     plt.title(title)
@@ -60,10 +72,9 @@ class PlotCurve(object):
     plt.xticks(range(len(self.x)), self.x, rotation=270, fontsize=3)
     plt.ylabel("sample count")
 
-    if add_bar_values:
-      self.add_bar_values(rects)
-    print("saving figure......")
-    plt.savefig('./datasets.png', dpi=300)
+    save_figure_path = os.path.join(os.path.dirname(data_dir), 'datasets.png')
+    print("saving figure, path {0}......".format(save_figure_path))
+    plt.savefig(save_figure_path, dpi=300)
 
 
 plot_tools = PlotCurve()
