@@ -65,6 +65,7 @@ def _f1_score(cls_dict, label_map_dict):
       continue
     value_list = [sku_name, object_id, count, TP, FN, FP, recall, precision, f1_score]
     results.append(value_list)
+
   results = sorted(results, key=lambda x: x[-1])[::-1]
   return results
 
