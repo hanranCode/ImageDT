@@ -25,3 +25,9 @@ def write_csv(data, path, is_excel=False):
     writer = csv.writer(csvfile)
     for row in data:
       writer.writerow(row)
+
+
+def readlines(file_path):
+    with open(file_path, 'r') as f:
+        lines = [item.strip() for item in f.readlines()]
+    return lines
