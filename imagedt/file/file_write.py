@@ -27,6 +27,13 @@ def write_csv(data, path, is_excel=False):
       writer.writerow(row)
 
 
+def read_csv(path, delimiter=','):
+    with file(path, 'rb') as csvfile:
+        reader = csv.reader(csvfile, delimiter=delimiter)
+        data = [line for line in reader]
+    return data
+
+
 def readlines(file_path):
     with open(file_path, 'r') as f:
         lines = [item.strip() for item in f.readlines()]

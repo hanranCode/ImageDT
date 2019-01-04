@@ -27,9 +27,12 @@ class PlotCurve(object):
     for class_name in class_names:
       if os.path.isfile(os.path.join(data_dir, class_name)):
         continue
-      if not class_name.startswith('other') or class_name.startswith('0'):
+      if class_name.startswith('other') or class_name.startswith('0'):
         continue
-      pos_samples_dict[class_name] = len(imagedt.dir.loop(os.path.join(data_dir, class_name), ['.jpg', '.png']))
+      # pos_samples_dict[class_name] = len(imagedt.dir.loop(os.path.join(data_dir, class_name), ['.jpg', '.png']))
+      pos_samples_dict[class_name] = len(imagedt.dir.loop(os.path.join(data_dir, class_name)))
+      if len(imagedt.dir.loop(os.path.join(data_dir, class_name))) < 10:
+        print(class_name)
     return pos_samples_dict
 
   def set_xy_values(self, sample_dict):
