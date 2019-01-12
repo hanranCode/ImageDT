@@ -6,43 +6,11 @@ import cv2
 import numpy as np
 import tensorflow as tf
 
+import imagedt
 from .DataInterface import *
 from ...image.process import noise_padd
 
-class DataProvider(object):
-  """docstring for DataProvider
-  train file: image [space] label 
-  """
-  def __init__(self, train_file, test_percent=0):
-    super(DataProvider, self).__init__()
-    self.train_file = train_file
-    self.test_percent = test_percent
-    self._check_infos()
-    self.load_image_label_pairs()
-
-  def _check_infos(self):
-    assert self.test_percent >= 0
-    assert self.test_percent <= 1
-
-  def load_image_label_pairs(self):
-    print("loading data......")
-    with open(self.train_file, 'r') as f:
-      lines = f.readlines()
-    split_str = ' ' if ' ' in lines[0] else ','
-    self.train_infos = np.array([line.strip().split(split_str) for line in lines])
-
-  @property
-  def get_data_provider(self):
-    count = len(self.train_infos)
-    count_test = int(count * self.test_percent)
-    count_train = count - count_test
-
-    datas = DataSets()
-    datas.train.set_x(self.train_infos[:, 0][0:count_train])
-    datas.train.set_y(self.train_infos[:, 1][0:count_train])
-    datas.test.set_x(self.train_infos[:, 0][count_train:])
-    datas.test.set_y(self.train_infos[:, 1][count_train:])
-    return datas
+slim = tf.contrib.slim
 
 
 def dynamically_loaded_data(image_paths, labels, height=224, width=224):
@@ -97,7 +65,7 @@ def tf_noise_padd(images, max_edge=224, start_pixel=0):
     top_padd_size = tf.div(tf.subtract(max_edge, height), 2)
     bottom_padd_size = tf.subtract(tf.subtract(max_edge, height), top_padd_size)
 
-    noise_top = tf.random_uniform((top_padd_size, width, channels), minval=start_pixel, maxval=255,dtype=tf.float32)
+    noise_top = tf.random_uniform((top_padd_size, width, channels), minval=start_pixel, maxval=255, dtype=tf.float32)
     noise_bottom = tf.random_uniform((bottom_padd_size, width, channels), minval=start_pixel, maxval=255, dtype=tf.float32)
 
     merge = tf.concat([noise_top, images, noise_bottom], axis=0)
@@ -105,4 +73,74 @@ def tf_noise_padd(images, max_edge=224, start_pixel=0):
 
   padd_noise_op = tf.cond(tf.greater(height, width), case_height_width, case_width_height)
   return padd_noise_op
+
+
+def tf_JitterCut(images, jitter=0.05):
+  width, height ,channels = images.shape
+  ratio = tf.random_uniform(1, minval=0, maxval=jitter, dtype=tf.float32)
+  new_h = height*(1-ratio)
+  new_w = width*(1-ratio)
+
+  start_x = tf.random_uniform(0, minval=0, maxval=width-new_w)
+  start_y = tf.random_uniform(0, minval=0, maxval=height-new_h)
+
+  return images[start_y:new_h, start_x:new_w]
+
+  # cv::Mat JitterCut(cv::Mat &src, float &jitter){
+  #     cv::Mat cv_img = src.clone();
+  #     uint64 timeseed =(double)cv::getTickCount();
+  #     cv::RNG rng(timeseed);
+  #     unsigned int height = cv_img.rows;
+  #     unsigned int width = cv_img.cols;
+  #     float ratio = rng.uniform(0., jitter);
+  #     unsigned int new_h = height*(1-ratio);
+  #     unsigned int new_w = width*(1-ratio);
+  #     unsigned int start_x = rng.uniform(0, width-new_w);
+  #     unsigned int start_y = rng.uniform(0, height-new_h);
+  #     cv::Rect roi(start_x,start_y,new_w,new_h);
+  #     cv_img = cv_img(roi);
+  #     return cv_img;
+  #  }
+
+
+class Data_Provider(object):
+  """docstring for Data_Provider"""
+  def __init__(self, data_dir):
+    super(Data_Provider, self).__init__()
+    self.data_dir = data_dir
+    self._init_reader()
+
+  @property
+  def _get_tfrecords(self, file_format=['.tfrecord']):
+      return imagedt.dir.loop(self.data_dir, file_format)
+
+  def _init_reader(self):
+    # read all tfrecord files
+    self.reader = tf.TFRecordReader()
+    record_files = self._get_tfrecords
+    self.filequeue = tf.train.string_input_producer(record_files)
+
+
+  def read_from_tfrecord(self, batch_size=32, image_shape=(224, 224, 3)):
+    _, fetch_tensors = self.reader.read(self.filequeue)
+    load_features = tf.parse_single_example(
+        fetch_tensors,features={
+            'image/height': tf.FixedLenFeature([], dtype=tf.int64),
+            'image/width': tf.FixedLenFeature([], dtype=tf.int64),
+            'image/class/label': tf.FixedLenFeature([], dtype=tf.int64),
+            'image/encoded': tf.FixedLenFeature([], dtype=tf.string),
+        }
+    )
+    height = tf.cast(load_features['image/height'], tf.int32)
+    width = tf.cast(load_features['image/width'], tf.int32)
+    label = tf.cast(load_features['image/class/label'], tf.int64)
+    image = tf.image.decode_jpeg(load_features['image/encoded'], channels=image_shape[2])
+    image = tf.reshape(image, tf.stack(image_shape))
+    # make a batch
+    image_batch, label_batch = tf.train.shuffle_batch([image, label], 
+                        batch_size=batch_size, 
+                        capacity=5000,
+                        min_after_dequeue=1000,
+                        num_threads=4)
+    return image_batch, label_batch
 
