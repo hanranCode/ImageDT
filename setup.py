@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
 	name = 'imagedt',
-	version = '0.0.4',
+	version = '0.4.1',
 	keywords = ('imagedt'),
 	description = 'a python lib for neural networks, file and image processing etc. ',
 	long_description="##[Details](https://github.com/hanranCode/ImageDT)",
