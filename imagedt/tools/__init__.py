@@ -6,3 +6,4 @@ from .metrics import detect_eval
 from .metrics import f1_score
 from .plot_curve import plot_tools
 from .com_tools import *
+from .text_generator import text_generator
