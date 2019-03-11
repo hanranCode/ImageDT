@@ -51,7 +51,7 @@ def resize_image_keep_aspect(image, max_edge=224):
   return tf.image.resize_images(image, [max_edge, new_width])
 
 
-def tf_noise_padd(images, max_edge=224, start_pixel=0):
+def tf_noise_padd(images, max_edge=224, start_pixel=0, end_pixel=255):
   # resize image with scale
   images = resize_image_keep_aspect(images, max_edge)
 
@@ -63,8 +63,10 @@ def tf_noise_padd(images, max_edge=224, start_pixel=0):
   def case_height_width():
     left_pad_size = tf.div(tf.subtract(max_edge, width), 2)
     right_pad_size = tf.subtract(tf.subtract(max_edge, width), left_pad_size)
-    noise_left = tf.random_uniform((height, left_pad_size, channels), minval=start_pixel, maxval=255,dtype=tf.float32)
-    noise_right = tf.random_uniform((height, right_pad_size, channels), minval=start_pixel, maxval=255, dtype=tf.float32)
+    noise_left = tf.random_uniform((height, left_pad_size, channels), minval=start_pixel, 
+      maxval=end_pixel,dtype=tf.float32)
+    noise_right = tf.random_uniform((height, right_pad_size, channels), minval=start_pixel, 
+      maxval=end_pixel, dtype=tf.float32)
     # noise_left = tf.ones((height, left_pad_size, channels)) * start_pixel
     # noise_right = tf.ones((height, right_pad_size, channels)) * start_pixel
     merge = tf.concat([noise_left, images, noise_right], axis=1)
@@ -74,8 +76,10 @@ def tf_noise_padd(images, max_edge=224, start_pixel=0):
   def case_width_height():
     top_padd_size = tf.div(tf.subtract(max_edge, height), 2)
     bottom_padd_size = tf.subtract(tf.subtract(max_edge, height), top_padd_size)
-    noise_top = tf.random_uniform((top_padd_size, width, channels), minval=start_pixel, maxval=255, dtype=tf.float32)
-    noise_bottom = tf.random_uniform((bottom_padd_size, width, channels), minval=start_pixel, maxval=255, dtype=tf.float32)
+    noise_top = tf.random_uniform((top_padd_size, width, channels), minval=start_pixel, 
+      maxval=end_pixel, dtype=tf.float32)
+    noise_bottom = tf.random_uniform((bottom_padd_size, width, channels), minval=start_pixel, 
+      maxval=end_pixel, dtype=tf.float32)
     # noise_top = tf.ones((top_padd_size, width, channels)) * start_pixel
     # noise_bottom = tf.ones((bottom_padd_size, width, channels)) * start_pixel
     merge = tf.concat([noise_top, images, noise_bottom], axis=0)
@@ -115,14 +119,33 @@ def tf_JitterCut(images, jitter=0.05):
 
 class Data_Provider(object):
   """docstring for Data_Provider"""
-  def __init__(self, data_dir):
+  def __init__(self, data_dir, num_classes):
     super(Data_Provider, self).__init__()
     self.data_dir = data_dir
+    self.num_classes = num_classes
+    self._init_dataset_infos()
     self._init_reader()
 
   @property
   def _get_tfrecords(self, file_format=['.tfrecord']):
       return imagedt.dir.loop(self.data_dir, file_format)
+
+  def _search_laebls_file(self):
+    sear_files = imagedt.dir.loop(self.data_dir, ['.txt'])
+    sear_label_file = [item for item in sear_files if ('label' in item) 
+      and item.endswith('.txt')]
+    if sear_label_file:
+      lines = imagedt.file.readlines(sear_label_file[0])
+      self.num_classes = len(lines)
+
+  def _init_dataset_infos(self):
+    self._search_laebls_file()
+
+  @property
+  def _log_dataset_infos(self):
+    print('##'*20)
+    print ("Dataset infos:\ndata_dir: {0} \nnum_classes: {1}".format(self.data_dir, self.num_classes))
+    print('##'*20)
 
   def _init_reader(self):
     # read all tfrecord files
@@ -131,7 +154,8 @@ class Data_Provider(object):
     self.filequeue = tf.train.string_input_producer(record_files)
 
 
-  def read_from_tfrecord(self, batch_size=32, image_shape=(224, 224, 3), num_classes=3):
+  def read_from_tfrecord(self, batch_size=32, image_shape=(224, 224, 3)):
+    self.image_shape = image_shape
     _, fetch_tensors = self.reader.read(self.filequeue)
     load_features = tf.parse_single_example(
         fetch_tensors,features={
@@ -145,10 +169,10 @@ class Data_Provider(object):
     width = tf.cast(load_features['image/width'], tf.int32)
     label = tf.cast(load_features['image/class/label'], tf.int64)
     image = tf.image.decode_jpeg(load_features['image/encoded'], channels=image_shape[2])
-    image = tf_noise_padd(image, max_edge=224, start_pixel=0)
-    image = tf.image.resize_images(image, (224, 224))
+    image = tf_noise_padd(image, max_edge=image_shape[0], start_pixel=255)
+    image = tf.reshape(image, image_shape, name=None)
     # make a batch
-    label = slim.one_hot_encoding(label, num_classes)
+    label = slim.one_hot_encoding(label, self.num_classes)
     image_batch, label_batch = tf.train.shuffle_batch([image, label], 
                         batch_size=batch_size, 
                         capacity=500,

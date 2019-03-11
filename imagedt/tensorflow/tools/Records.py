@@ -5,15 +5,19 @@ from __future__ import print_function
 
 import os
 import sys
+import cv2
 import random
 import numpy as np
+import traceback
 import tensorflow as tf
 
 from . import dataset_util
 from ...file.file_operate import FilesOp
 from ...file.parse_annotation import Anno_OP
+from .data_provider import tf_noise_padd
 import imagedt
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 class ImageReader(object):
   """Helper class that provides TensorFlow image coding utilities."""
@@ -48,27 +52,29 @@ class Record_Writer(ImageReader):
                    'image/height': dataset_util.int64_feature(height),
                    'image/width': dataset_util.int64_feature(width), }))
 
-  def convert_to_tfrecord(self, f_lines, svae_dir):
+  def convert_to_tfrecord(self, f_lines, svae_dir, dataset_type='train'):
     """Converts a file to TFRecords."""
     print('Generating TFRecords......' )
     with tf.Session() as sess:
-      piece_count = 20000
+      piece_count = 50000
       num_pieces = int(len(f_lines) / piece_count + 1)
-
       for num_piece in range(num_pieces):
         start_id, end_id = num_piece*piece_count, min(len(f_lines), (num_piece+1)*piece_count)
 
-        output_file = os.path.join(svae_dir, 'flowers_train_' + str(num_piece+1).zfill(6) + '.tfrecord')
+        output_file = os.path.join(svae_dir, dataset_type + str(num_piece+1).zfill(6) + '.tfrecord')
         with tf.python_io.TFRecordWriter(output_file) as record_writer:
           for index in range(start_id, end_id):
             try:
-              encoded_image = tf.gfile.FastGFile(f_lines[index][0], 'rb').read()
-              height, width = self.read_image_dims(sess, encoded_image)
+              img = cv2.imread(f_lines[index][0])
+              height, width, chanel = img.shape
+              encoded_image = cv2.imencode('.png', img)[1].tostring()
+              # encoded_image = tf.gfile.FastGFile(f_lines[index][0], 'rb').read()
             except Exception as e:
-              print(e)
+              traceback.print_exc(file=sys.stdout)
               print("error image file {0}...".format(os.path.basename(f_lines[index][0])))
               self.error_images.append(os.path.basename(f_lines[index][0]))
               continue
+
             # tf example format: NCHW
             image_format = os.path.basename(f_lines[index][0]).split('.')[-1].encode()
             example = self.image_to_tfexample(encoded_image, image_format, height, width, int(f_lines[index][1]))
@@ -118,25 +124,27 @@ class Record_Writer(ImageReader):
                 'image/object/class/label': dataset_util.int64_list_feature(classes), }))
     return tf_example
 
-  def write_cls_records(self, train_images_file, labels_file, save_dir):
+  def write_cls_records(self, train_images_file, save_dir, test_ratio=0):
     with open(train_images_file, 'r') as f:
-      all_files = [item.strip().split(' ') for item in f.readlines()]
+      all_files = [item.strip().split('\t') for item in f.readlines()]
       # save images file in tfrecord dir
       imagedt.file.write_csv(all_files, os.path.join(save_dir,'image_files.txt'))
 
-    with open(labels_file, 'r') as f:
-      all_labels = [item.strip().split('\t') for item in f.readlines()]
-      all_labels = sorted(all_labels, key=lambda x: int(x[1]))
-
-    with open(os.path.join(save_dir, 'sku_labels.txt'), 'w') as f:
-      [f.write(line[1]+":"+line[0]+'\n') for line in all_labels]
-
     # shuffle all the files
     random.shuffle(all_files)
+    sample_count = len(all_files)
     # read file, write to tfrecords
-    self.convert_to_tfrecord(all_files, save_dir)
+    test_count = int(sample_count * test_ratio)
+    if test_count:
+      test_samples = all_files[-test_count:]
+      self.convert_to_tfrecord(test_samples, save_dir, dataset_type='validation_')
+      # save error images
+      imagedt.file.write_txt(self.error_images, os.path.join(save_dir,'test_error_images.txt'))
+
+    train_samples = all_files[:sample_count-test_count]
+    self.convert_to_tfrecord(all_files, save_dir, dataset_type='train_')
     # save error images
-    imagedt.file.write_txt(self.error_images, os.path.join(save_dir,'error_images.txt'))
+    imagedt.file.write_txt(self.error_images, os.path.join(save_dir,'train_error_images.txt'))
 
   def converte_anno_info(self, data_dir, det_cls_name='3488'):
     data_pairs = FilesOp.get_jpg_xml_pairs(data_dir)
@@ -165,3 +173,15 @@ class Record_Writer(ImageReader):
 
 
 RecordWriter = Record_Writer()
+
+
+from tensorflow.python.platform import gfile
+def write_pbmodel_summery(tf_pbmodel, log_dir):
+    with tf.Session() as sess:
+        model_filename =tf_pbmodel
+        with gfile.FastGFile(model_filename, 'rb') as f:
+            graph_def = tf.GraphDef()
+            graph_def.ParseFromString(f.read())
+            g_in = tf.import_graph_def(graph_def)
+    train_writer = tf.summary.FileWriter(log_dir)
+    train_writer.add_graph(sess.graph)

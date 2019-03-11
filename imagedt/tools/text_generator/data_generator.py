@@ -4,14 +4,14 @@ import random
 
 from PIL import Image, ImageFilter
 
-from computer_text_generator import ComputerTextGenerator
+from .computer_text_generator import ComputerTextGenerator
 try:
     from handwritten_text_generator import HandwrittenTextGenerator
 except ImportError as e:
     print('Missing modules for handwritten text generation.')
 
-from background_generator import BackgroundGenerator
-from distorsion_generator import DistorsionGenerator
+from .background_generator import BackgroundGenerator
+from .distorsion_generator import DistorsionGenerator
 
 class FakeTextDataGenerator(object):
     @classmethod

@@ -7,7 +7,9 @@ import cv2
 import sys
 import hashlib
 import numpy as np
-from PIL import Image
+
+from multiprocessing import Process
+# from PIL import Image
 
 from ..dir.dir_loop import loop
 
@@ -18,19 +20,30 @@ _G_MEAN = 117.
 _B_MEAN = 104.
 
 
-def clear_dir(images_dir, debug = True):
+def clear_dir(images_dir, debug=True, multi_process=4):
     """清理目录下破损图片"""
     images_path = loop(images_dir, IMG_EXTENSIONS)
     count = len(images_path)
-    for i, image_path in enumerate(images_path):
-        if debug:
-            sys.stdout.write('\r%d/%d' % (i, count))
-            sys.stdout.flush()
-        try:
-            Image.open(image_path).convert('RGB')
-        except Exception as e:
-            print("Remove broken image: {0}".format(image_path))
-            os.remove(image_path)
+    def delete_bro_img(image_lists):
+        for i, image_path in enumerate(image_lists, 1):
+            if debug:
+                sys.stdout.write('\r%d/%d' % (i, len(image_lists)))
+                sys.stdout.flush()
+            try:
+                cv2.imread(image_path).shape
+                # Image.open(image_path).convert('RGB')
+            except Exception as e:
+                print("Remove broken image: {0}".format(image_path))
+                os.remove(image_path)
+    for i in range(multi_process):
+        start_ind = (count / multi_process)*i
+        end_ind = -1 if (i+1) == count else (count / multi_process)*(i+1)
+        image_lists = images_path[start_ind:end_ind]
+        p = Process(target=delete_bro_img, args=(image_lists,))
+        p.start()
+        print("start job {0}, start_ind:end_inf --> {1}:{2} ......".format(i+1, start_ind, end_ind))
+        # p.join()
+
 
 
 def noise_padd(img, edge_size=224, start_pixel_value=0):
@@ -83,7 +96,6 @@ def remove_broken_image(data_dir):
     for image_file in image_files:
         try:
             img_mat = cv2.imread(image_file)
-
             if img_mat is None:
                 os.remove(image_file)
                 print('remove broken image {0}'.format(image_file))
@@ -153,9 +165,7 @@ def reduce_imagenet_mean(cv_mat):
 
 
 def swap_chanel_to_RGB(cvmat):
-  # B, G, R = cv2.split(cvmat)
-  # return cv2.merge([R, G, B])
-  return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+  return cv2.cvtColor(cvmat, cv2.COLOR_BGR2RGB)
 
 
 def vgg_preprocesing(cvmat):
@@ -266,6 +276,71 @@ def draw_contours(img, contours, idx = -1, color = 1, border_width = 1):
     cv2.drawContours(img, contours, idx, color, border_width)
     return img
 
+
 def polly_points2contours(points):
     points = [np.reshape(item, [4, 2]) for item in points]
     return points_to_contours(points)[0]
+
+
+def rename_imfiles_with_md5(imdir, rename_xml=False):
+    dir_images = loop(imdir)
+    for ind, im_file in enumerate(dir_images, 1):
+        with open(im_file, 'r') as f:
+            contents = f.read()
+        md5_code = hashlib.md5(contents).hexdigest()
+        dir_name = os.path.dirname(im_file)
+        file_type= os.path.basename(im_file)[-4:]
+        save_path = os.path.join(dir_name, md5_code+file_type)
+        print("rename file finished {1}/{2}: {0}".format(save_path, ind, len(dir_images)))
+        os.rename(im_file, save_path)
+        if rename_xml:
+            xml_file = im_file.replace('JPEGImages', 'Annotations').replace(file_type, '.xml')
+            new_xml = os.path.join(os.path.dirname(xml_file), md5_code+'.xml')
+            os.rename(xml_file, new_xml)
+
+
+# def compare_with_md5(image_dir, save_dir=None):
+#     #coding=utf-8
+#     import os
+#     import hashlib
+#     import shutil
+
+#     input_ = '/data02/heiren/online/2018-12-01-15/'
+#     output_ = '/data02/heiren/online/2018-12-01-15/md5'
+#     list_ = {}
+#     index = 1
+
+#     for file_ in os.listdir(os.path.join(input_, 'JPEGImages')):
+#         if index % 500 == 0:
+#             print index, file_
+#         index += 1
+
+#         fileName = os.path.join(input_, 'JPEGImages', file_)
+#         data = open(fileName, 'r').read()
+#         f_md5 = hashlib.md5(data)
+#         md5_ = f_md5.hexdigest()
+#         id_ = file_.split('.jpg')[0]
+
+#         xml1 = os.path.join(input_, 'Annotations', id_ + '.xml')
+#         xml2 = os.path.join(input_, 'Annotations2', id_ + '.xml')
+#         xml3 = os.path.join(input_, 'Annotations3', id_ + '.xml')
+#         jpg = os.path.join(input_, 'JPEGImages', id_ + '.jpg')
+
+#         if os.path.exists(xml1):
+#             if not os.path.exists(os.path.join(output_, 'Annotations')):
+#                 os.makedirs(os.path.join(output_, 'Annotations'))
+#             shutil.copy(xml1, os.path.join(output_, 'Annotations', md5_ + '.xml'))
+#         if os.path.exists(xml2):
+#             if not os.path.exists(os.path.join(output_, 'Annotations2')):
+#                 os.makedirs(os.path.join(output_, 'Annotations2'))
+#             shutil.copy(xml2, os.path.join(output_, 'Annotations2', md5_ + '.xml'))
+#         if os.path.exists(xml3):
+#             if not os.path.exists(os.path.join(output_, 'Annotations3')):
+#                 os.makedirs(os.path.join(output_, 'Annotations3'))
+#             shutil.copy(xml3, os.path.join(output_, 'Annotations3', md5_ + '.xml'))
+#         if os.path.exists(jpg):
+#             if not os.path.exists(os.path.join(output_, 'JPEGImages')):
+#                 os.makedirs(os.path.join(output_, 'JPEGImages'))
+#             shutil.copy(jpg, os.path.join(output_, 'JPEGImages', md5_ + '.jpg'))
+
+#     pass

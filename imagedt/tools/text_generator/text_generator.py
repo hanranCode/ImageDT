@@ -51,18 +51,19 @@ class Text_Generator(object):
 
 		index = [i for i in range(0, count)]
 		font_path = self.fonts[:1] * count
-		save_dir = ['/data/tmp/temp'] * count
+		save_dir = ['/data/tmp/temp/price_tags_fake_dats'] * count
 		size = [96] * count
 		extension = ['png'] * count
 		skewing_angle = [random.randint(0, 20) for _ in range(count)]
+		# skewing_angle = [0] * count
 		random_skew = [True] * count
 		blur = [0] * count
-		random_blur = [False] * count
+		random_blur = [True] * count
 		background_type = [0] * count
 		distorsion_type = [0] * count
 		distorsion_orientation = [0] * count
 		is_handwritten = [False] * count
-		name_format = [2] * count
+		name_format = [1] * count
 		width = [200] * count
 		alignment = [1] * count
 		text_color = ['#282828'] * count
@@ -107,13 +108,17 @@ class Text_Generator(object):
 		self.pool.terminate()
 		print ("time cost: {0:.4f}".format(time.time()-st_time))
 
-	import imagedt
-	@imagedt.decorator.time_cost
+	# import imagedt
+	# @imagedt.decorator.time_cost
 	def gen_price_realtime_datas(self, batch_size=64):
-		texts = [str(random.randint(1, 9999)) for _ in range(batch_size)]
+		items = []
+		texts = [str(random.randint(1, 9999)) for _ in xrange(batch_size)]
 		self.set_params(texts)
+		# for _ in tqdm(self.pool.imap_unordered(FakeTextDataGenerator.generate_from_tuple, self.args),
+		# 		total=len(texts)):
+		# 	pass
 		items = [[np.array(items[0]), items[1]] for items in 
 				self.pool.imap_unordered(FakeTextDataGenerator.generate_from_tuple, self.args)]
 		# close
-		self.pool.terminate()
+		# self.pool.terminate()
 		return items
