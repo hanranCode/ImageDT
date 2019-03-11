@@ -111,8 +111,13 @@ class Text_Generator(object):
 	# import imagedt
 	# @imagedt.decorator.time_cost
 	def gen_price_realtime_datas(self, batch_size=64):
-		items = []
-		texts = [str(random.randint(1, 9999)) for _ in xrange(batch_size)]
+		items, texts = [], []
+		for _ in xrange(batch_size):
+			text = str(random.randint(1, 99999))
+			if len(text) > 2:
+				text = text[:-1] + '0'
+			texts.append(text)
+
 		self.set_params(texts)
 		# for _ in tqdm(self.pool.imap_unordered(FakeTextDataGenerator.generate_from_tuple, self.args),
 		# 		total=len(texts)):
