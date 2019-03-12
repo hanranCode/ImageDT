@@ -69,7 +69,7 @@ class Text_Generator(object):
 		text_color = ['#282828'] * count
 		orientation = [0] * count
 		space_width = [1.0] * count
-		save = [True] * count
+		save = [False] * count
 
 		self.args = zip(index,
 			text,
