@@ -5,7 +5,6 @@ from __future__ import print_function
 import os
 import cv2
 import uuid
-import nose.tools as ntools
 
 from ..dir.dir_loop import loop
 
@@ -56,7 +55,7 @@ class FilesOp(object):
 
     def assert_not_in_op(self, member, container):
         try:
-            ntools.assert_not_in(member, container)
+            assert member not in container
         except Exception as e:
             print(e) 
             raise ValueError('Value {0} contains {1}'.format(container, member))
@@ -65,16 +64,16 @@ class FilesOp(object):
         try:
             if isinstance(member, type(list())):
                 for assert_str in member:
-                    ntools.assert_in(assert_str, container)
+                    assert assert_str in container
             else:
-                ntools.assert_in(member, container)
+                assert member in container
         except Exception as e:
             print(e) 
             raise ValueError("Value {0} didn't contain {1}".format(container, member))
 
     def assert_instance_op(self, inst, tar_inst=list()):
         try:
-            ntools.assert_is_instance(inst, type(tar_inst))
+            assert type(inst) == type(tar_inst)
         except Exception as e:
             print(e)
             raise ValueError("input Values should be list...")
@@ -160,3 +159,5 @@ class FilesOp(object):
                     print("rename {0} as {1}".format(os.path.basename(class_dir_name), os.path.basename(set_name)))
                 except Exception as e:
                     print(class_dir_name)
+
+FilesOp = FilesOp()

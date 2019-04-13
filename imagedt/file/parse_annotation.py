@@ -28,6 +28,25 @@ class Anno_OP(object):
             lines = f.readlines()
         return [line.strip().split(',') for line in lines]
 
+    def get_object_bndbox(self, sku_object):
+        return map(float, [sku_object['bndbox'][ite_cor] for ite_cor in ['xmin', 'ymin', 'xmax', 'ymax']])
+
+    def get_label_object(self, fxml):
+        objects = []
+        annotation = self.read_xml(fxml)
+        for iter_object in annotation.iter('object'):
+            bndx = self.parse_bndx_object(iter_object.find('bndbox'))
+            object_find = {'name': iter_object.find('name').text, 
+                'bndbox':{'xmin':bndx[0], 'ymin':bndx[1], 'xmax':bndx[2], 'ymax':bndx[3]}}
+            if iter_object.find('price') is not None:
+                object_find['price'] = iter_object.find('price').text 
+            if iter_object.find('confidence') is not None:
+                object_find['confidence'] = iter_object.find('confidence').text
+            if iter_object.find('desc') is not None:
+                object_find['desc'] = iter_object.find('desc').text
+            objects.append(object_find)
+        return objects
+
     def parse_lab_xml(self, fxml):
         annotation = self.read_xml(fxml)
         return [self.parse_bndx_object(iter_object.find('bndbox')) for iter_object in annotation.iter('object')]
@@ -100,12 +119,21 @@ class Anno_OP(object):
         with open(xml_name, "w") as xmlfile:
             xmlfile.write(xml)
 
-    def reset_xml_cls(self, xml_dir, name='3488', desc=u'圆柱圆台形' ):
+    def reset_xml_cls(self, xml_dir, name='3488', desc=u'圆柱圆台形',resetid_list=None ):
+        if resetid_list is not None:
+            try:
+                assert type(resetid_list) == type([])
+            except:
+                raise ValueError('resetid_list must be list: like [3477,3478,12354]')
         for index, f_path in enumerate(os.listdir(xml_dir)):
             xml_path = os.path.join(xml_dir, f_path)
             an_objects = self.read_xml(xml_path)
             for tag in an_objects.iter('object'):
-                tag.find('name').text = name
+                if resetid_list is not None:
+                    if int(tag.find('name').text) in resetid_list:
+                        tag.find('name').text = name
+                else:
+                    tag.find('name').text = name
                 if tag.find('desc') is not None:
                      tag.find('desc').text = desc
             xml = etree.tostring(an_objects, pretty_print=True, encoding='UTF-8')
@@ -113,7 +141,13 @@ class Anno_OP(object):
                 xmlfile.write(xml)
             print("finished reset {0}/{1}".format(index+1, len(os.listdir(xml_dir))))
 
-    def write_xml(self, bndboxs, scores, xmlname, thresh=0.1, classes=None):
+    def write_anno_object(self, annotation, xmlname):
+        xml = etree.tostring(annotation, pretty_print=True, encoding='UTF-8')
+        with open(xmlname, "w") as xmlfile:
+            xmlfile.write(xml)
+
+
+    def write_xml(self, bndboxs, scores, xmlname, thresh=0.1, classes='3488'):
 
         annotation = etree.Element("Annotation")
         for index, loca_info in enumerate(bndboxs):
@@ -121,11 +155,13 @@ class Anno_OP(object):
                 continue
             vocObject = etree.SubElement(annotation, "object")
             name = etree.SubElement(vocObject, "name")
-
-            name.text = '3488'
+            name.text = classes
 
             desc = etree.SubElement(vocObject, "desc")
             desc.text = unicode('object', 'utf-8')
+
+            confi = etree.SubElement(vocObject, "confidence")
+            confi.text = str(scores[index])
 
             # xmin ,ymin, xmax, ymax
             xmins, ymins, xmaxs, ymaxs = map(str, loca_info)
@@ -142,6 +178,9 @@ class Anno_OP(object):
             ymax = etree.SubElement(bndbox, "ymax")
             ymax.text = ymaxs
 
-        xml = etree.tostring(annotation, pretty_print=True, encoding='UTF-8')
-        with open(xmlname, "w") as xmlfile:
-            xmlfile.write(xml)
+        self.write_anno_object(annotation, xmlname)
+        # xml = etree.tostring(annotation, pretty_print=True, encoding='UTF-8')
+        # with open(xmlname, "w") as xmlfile:
+        #     xmlfile.write(xml)
+
+Anno_OP = Anno_OP()

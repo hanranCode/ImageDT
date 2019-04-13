@@ -4,4 +4,5 @@ from __future__ import print_function
 
 from . import network
 from . import optim
-from .trainer import *
+from . import tools
+from . import trainer

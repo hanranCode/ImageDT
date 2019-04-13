@@ -49,9 +49,11 @@ class LoopFile:
         return t_sum
 
 
-def loop(root, extensions=[]):
+def loop(root, extensions=['.jpg', '.png']):
     lf = LoopFile(root, extensions)
     return lf.start(lambda f: f)
 
 
-
+def get_dir_images(root='./', extensions=['.jpg', '.png']):
+    lf = LoopFile(root, extensions)
+    return len(lf.start(lambda f: f))

@@ -6,10 +6,11 @@ from .image import *
 from .caffe import *
 from .tensorflow import *
 from .torch import *
-from .converters import *
+from . import converters
 from .file import *
 from .decorator import *
 from .dir import *
+from .tools import *
 
-__version__ = '0.0.13'
+__version__ = '0.4.1'
 
