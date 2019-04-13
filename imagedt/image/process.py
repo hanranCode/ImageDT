@@ -198,23 +198,30 @@ def get_box(bndbox, loca_type='mid'):
         # xmid = bndbox[0]+(bndbox[2]-bndbox[0])/2.
         xmid = bndbox[0]
         ymid = bndbox[1]
+    elif loca_type == 'bot':
+        xmid = bndbox[0]
+        ymid = max(0, bndbox[3]-5)
+    elif loca_type == 'botup':
+        xmid = bndbox[0]
+        ymid = max(0, bndbox[3]-(bndbox[3]-bndbox[1])/4)
     else:
-        xmid = bndbox[0]+(bndbox[2]-bndbox[0])/2.
+        # xmid = bndbox[0]+(bndbox[2]-bndbox[0])/2.
+        xmid = bndbox[0]
         ymid = bndbox[1]+(bndbox[3]-bndbox[1])/2.
     return (int(xmid), int(ymid))
 
 
-def put_cvtext(img, text, posi, color=(0,0,255), fontScale=1, thickness=3, font_type=None):
+def put_cvtext(img, text, posi, color=(0,0,255), fontScale=1, thickness=1, font_type=None):
     if font_type is None:
-        font = cv2.FONT_HERSHEY_SIMPLEX
+        font = cv2.FONT_HERSHEY_DUPLEX
     else:
         font = font_type
     cv2.putText(img=img, text=text, org=posi, fontFace=font, fontScale=fontScale, 
-        color=color, thickness=thickness)
+        color=color, thickness=thickness, lineType=2)
 
 
 def draw_cvrect(img, bndboxes, box_color=(0,0,255), border=1, font_color=(0,255,0), draw_strs=None, 
-                    fontScale=3, compare_strs=None, draw_location='mid', font_type=None):
+                    fontScale=3, compare_strs=None, draw_location='mid', font_type=None, thickness=2):
     for index, bndbox in enumerate(bndboxes):
         bndbox = map(int, bndbox)
         left_up = (bndbox[0], bndbox[1])
@@ -225,7 +232,7 @@ def draw_cvrect(img, bndboxes, box_color=(0,0,255), border=1, font_color=(0,255,
             show_str = draw_strs[index]
         else:
             show_str = str(index)
-        put_cvtext(img, show_str, mid_box, color=font_color, fontScale=fontScale, thickness=3, font_type=font_type)
+        put_cvtext(img, show_str, mid_box, color=font_color, fontScale=fontScale, thickness=thickness, font_type=font_type)
     return img
 
 
