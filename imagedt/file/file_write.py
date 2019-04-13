@@ -6,13 +6,18 @@ import csv
 import json
 
 
-def write_txt(data, path):
+def write_txt(data, path, separator=','):
     with open(path, "w") as text_file:
         if isinstance(data, (str, unicode)):
             text_file.write(str(data))
         elif isinstance(data, list):
             for line in data:
                 if isinstance(line, (str, unicode)):
+                    text_file.write(str(line) + '\n')
+                elif isinstance(line, list):
+                    line = map(str, line)
+                    split_str = separator+''
+                    line = split_str.join(line)
                     text_file.write(str(line) + '\n')
         else:
             text_file.write(json.dumps(data))
@@ -38,3 +43,14 @@ def readlines(file_path):
     with open(file_path, 'r') as f:
         lines = [item.strip() for item in f.readlines()]
     return lines
+
+
+def write_json(json_objects, file_path):
+    with open(file_path, 'w') as f:
+        json.dump(json_objects, f)
+
+
+def read_json(file_path):
+    with open(file_path) as f:
+        items = json.load(f)
+    return items
