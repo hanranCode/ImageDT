@@ -15,9 +15,9 @@ from ..dir.dir_loop import loop
 
 IMG_EXTENSIONS = ['.jpg', '.JPG', '.jpeg', '.JPEG', '.png', '.PNG', '.ppm', '.PPM', '.bmp', '.BMP']
 
-_R_MEAN = 123.
-_G_MEAN = 117.
-_B_MEAN = 104.
+_R_MEAN = 123.68
+_G_MEAN = 116.78
+_B_MEAN = 103.94
 
 
 def clear_dir(images_dir, debug=True, multi_process=4):
@@ -46,7 +46,7 @@ def clear_dir(images_dir, debug=True, multi_process=4):
 
 
 
-def noise_padd(img, edge_size=224, start_pixel_value=0):
+def noise_padd(img, edge_size=224, start_pixel_value=0, end_pixel_value=256):
     """
     img: cvMat
     edge_size: image max edge
@@ -76,7 +76,7 @@ def noise_padd(img, edge_size=224, start_pixel_value=0):
         noise_size = (padding, edge_size)
         if channels > 1:
             noise_size += (channels,)
-        noise = np.random.randint(start_pixel_value, 256, noise_size).astype('uint8')
+        noise = np.random.randint(start_pixel_value, end_pixel_value, noise_size).astype('uint8')
         # noise = np.zeros(noise_size).astype('uint8')
         img = np.concatenate((noise, img, noise), axis=0)
     else:
@@ -84,7 +84,7 @@ def noise_padd(img, edge_size=224, start_pixel_value=0):
         noise_size = (edge_size, padding)
         if channels > 1:
             noise_size += (channels,)
-        noise = np.random.randint(start_pixel_value, 256, noise_size).astype('uint8')
+        noise = np.random.randint(start_pixel_value, end_pixel_value, noise_size).astype('uint8')
         # noise = np.zeros(noise_size).astype('uint8')
         img = np.concatenate((noise, img, noise), axis=1)
     return img
