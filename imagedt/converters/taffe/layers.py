@@ -1,62 +1,72 @@
-import re
 import numbers
+import re
 from collections import namedtuple
 
-from .shapes import *
+from .errors import KaffeError
+from .shapes import (
+    shape_concat,
+    shape_convolution,
+    shape_data,
+    shape_identity,
+    shape_inner_product,
+    shape_mem_data,
+    shape_not_implemented,
+    shape_pool,
+    shape_scalar,
+)
 
 LAYER_DESCRIPTORS = {
-
     # Caffe Types
-    'AbsVal': shape_identity,
-    'Accuracy': shape_scalar,
-    'ArgMax': shape_not_implemented,
-    'BatchNorm': shape_identity,
-    'BNLL': shape_not_implemented,
-    'Concat': shape_concat,
-    'ContrastiveLoss': shape_scalar,
-    'Convolution': shape_convolution,
-    'Deconvolution': shape_not_implemented,
-    'Data': shape_data,
-    'Dropout': shape_identity,
-    'DummyData': shape_data,
-    'EuclideanLoss': shape_scalar,
-    'Eltwise': shape_identity,
-    'Exp': shape_identity,
-    'Flatten': shape_not_implemented,
-    'HDF5Data': shape_data,
-    'HDF5Output': shape_identity,
-    'HingeLoss': shape_scalar,
-    'Im2col': shape_not_implemented,
-    'ImageData': shape_data,
-    'InfogainLoss': shape_scalar,
-    'InnerProduct': shape_inner_product,
-    'Input': shape_data,
-    'LRN': shape_identity,
-    'MemoryData': shape_mem_data,
-    'MultinomialLogisticLoss': shape_scalar,
-    'MVN': shape_not_implemented,
-    'Pooling': shape_pool,
-    'Power': shape_identity,
-    'ReLU': shape_identity,
-    'Scale': shape_identity,
-    'Sigmoid': shape_identity,
-    'SigmoidCrossEntropyLoss': shape_scalar,
-    'Silence': shape_not_implemented,
-    'Softmax': shape_identity,
-    'SoftmaxWithLoss': shape_scalar,
-    'Split': shape_not_implemented,
-    'Slice': shape_not_implemented,
-    'TanH': shape_identity,
-    'WindowData': shape_not_implemented,
-    'Threshold': shape_identity,
+    "AbsVal": shape_identity,
+    "Accuracy": shape_scalar,
+    "ArgMax": shape_not_implemented,
+    "BatchNorm": shape_identity,
+    "BNLL": shape_not_implemented,
+    "Concat": shape_concat,
+    "ContrastiveLoss": shape_scalar,
+    "Convolution": shape_convolution,
+    "Deconvolution": shape_not_implemented,
+    "Data": shape_data,
+    "Dropout": shape_identity,
+    "DummyData": shape_data,
+    "EuclideanLoss": shape_scalar,
+    "Eltwise": shape_identity,
+    "Exp": shape_identity,
+    "Flatten": shape_not_implemented,
+    "HDF5Data": shape_data,
+    "HDF5Output": shape_identity,
+    "HingeLoss": shape_scalar,
+    "Im2col": shape_not_implemented,
+    "ImageData": shape_data,
+    "InfogainLoss": shape_scalar,
+    "InnerProduct": shape_inner_product,
+    "Input": shape_data,
+    "LRN": shape_identity,
+    "MemoryData": shape_mem_data,
+    "MultinomialLogisticLoss": shape_scalar,
+    "MVN": shape_not_implemented,
+    "Pooling": shape_pool,
+    "Power": shape_identity,
+    "ReLU": shape_identity,
+    "Scale": shape_identity,
+    "Sigmoid": shape_identity,
+    "SigmoidCrossEntropyLoss": shape_scalar,
+    "Silence": shape_not_implemented,
+    "Softmax": shape_identity,
+    "SoftmaxWithLoss": shape_scalar,
+    "Split": shape_not_implemented,
+    "Slice": shape_not_implemented,
+    "TanH": shape_identity,
+    "WindowData": shape_not_implemented,
+    "Threshold": shape_identity,
 }
 
-LAYER_TYPES = LAYER_DESCRIPTORS.keys()
+LAYER_TYPES = list(LAYER_DESCRIPTORS.keys())
 
-LayerType = type('LayerType', (), {t: t for t in LAYER_TYPES})
+LayerType = type("LayerType", (), {t: t for t in LAYER_TYPES})
+
 
 class NodeKind(LayerType):
-
     @staticmethod
     def map_raw_kind(kind):
         if kind in LAYER_TYPES:
@@ -68,38 +78,38 @@ class NodeKind(LayerType):
         try:
             val = LAYER_DESCRIPTORS[node.kind](node)
             return val
-        except NotImplementedError:
-            raise KaffeError('Output shape computation not implemented for type: %s' % node.kind)
+        except NotImplementedError as error:
+            raise KaffeError(
+                f"Output shape computation not implemented for type: {node.kind}"
+            ) from error
 
 
 class NodeDispatchError(KaffeError):
-
     pass
 
 
-class NodeDispatch(object):
-
+class NodeDispatch:
     @staticmethod
     def get_handler_name(node_kind):
         if len(node_kind) <= 4:
             # A catch-all for things like ReLU and tanh
             return node_kind.lower()
         # Convert from CamelCase to under_scored
-        name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', node_kind)
-        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+        name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", node_kind)
+        return re.sub("([a-z0-9])([A-Z])", r"\1_\2", name).lower()
 
     def get_handler(self, node_kind, prefix):
         name = self.get_handler_name(node_kind)
-        name = '_'.join((prefix, name))
+        name = "_".join((prefix, name))
         try:
             return getattr(self, name)
-        except AttributeError:
-            raise NodeDispatchError('No handler found for node kind: %s (expected: %s)' %
-                                    (node_kind, name))
+        except AttributeError as error:
+            raise NodeDispatchError(
+                f"No handler found for node kind: {node_kind} (expected: {name})"
+            ) from error
 
 
-class LayerAdapter(object):
-
+class LayerAdapter:
     def __init__(self, layer, kind):
         self.layer = layer
         self.kind = kind
@@ -107,11 +117,13 @@ class LayerAdapter(object):
     @property
     def parameters(self):
         name = NodeDispatch.get_handler_name(self.kind)
-        name = '_'.join((name, 'param'))
+        name = "_".join((name, "param"))
         try:
             return getattr(self.layer, name)
-        except AttributeError:
-            raise NodeDispatchError('Caffe parameters not found for layer kind: %s' % (self.kind))
+        except AttributeError as error:
+            raise NodeDispatchError(
+                f"Caffe parameters not found for layer kind: {self.kind}"
+            ) from error
 
     @staticmethod
     def get_kernel_value(scalar, repeated, idx, default=None):
@@ -127,7 +139,7 @@ class LayerAdapter(object):
             # Extract the value for the given spatial dimension
             return repeated[idx]
         if default is None:
-            raise ValueError('Unable to determine kernel parameter!')
+            raise ValueError("Unable to determine kernel parameter!")
         return default
 
     @property
@@ -143,5 +155,7 @@ class LayerAdapter(object):
         return KernelParameters(k_h, k_w, s_h, s_w, p_h, p_w)
 
 
-KernelParameters = namedtuple('KernelParameters', ['kernel_h', 'kernel_w', 'stride_h', 'stride_w',
-                                                   'pad_h', 'pad_w'])
+KernelParameters = namedtuple(
+    "KernelParameters",
+    ["kernel_h", "kernel_w", "stride_h", "stride_w", "pad_h", "pad_w"],
+)

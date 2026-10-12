@@ -1,14 +1,15 @@
-# coding: utf-8
-from __future__ import absolute_import
-from __future__ import print_function
-
 import time
+from functools import wraps
 
 
 def time_cost(func):
+    @wraps(func)
     def _time_cost(*args, **kwargs):
-        start = time.time()
+        start = time.perf_counter()
         ret = func(*args, **kwargs)
-        print("==> time-cost: %6f (s)     %s " % (time.time() - start, func.__name__))
+        print(
+            f"==> time-cost: {time.perf_counter() - start:6f} (s)     {func.__name__} "
+        )
         return ret
+
     return _time_cost

@@ -1,12 +1,12 @@
 from google.protobuf import text_format
 
 from .caffe import get_caffe_resolver
-from .errors import KaffeError, print_stderr
-from .layers import LayerAdapter, LayerType, NodeKind, NodeDispatch
+from .errors import KaffeError
+from .layers import LayerAdapter, LayerType, NodeDispatch, NodeKind
 from .shapes import TensorShape
 
-class Node(object):
 
+class Node:
     def __init__(self, name, kind, layer=None):
         self.name = name
         self.kind = kind
@@ -31,8 +31,9 @@ class Node(object):
 
     def get_only_parent(self):
         if len(self.parents) != 1:
-            raise KaffeError('Node (%s) expected to have 1 parent. Found %s.' %
-                             (self, len(self.parents)))
+            raise KaffeError(
+                f"Node ({self}) expected to have 1 parent. Found {len(self.parents)}."
+            )
         return self.parents[0]
 
     @property
@@ -42,14 +43,13 @@ class Node(object):
         return None
 
     def __str__(self):
-        return '[%s] %s' % (self.kind, self.name)
+        return f"[{self.kind}] {self.name}"
 
     def __repr__(self):
-        return '%s (0x%x)' % (self.name, id(self))
+        return f"{self.name} (0x{id(self):x})"
 
 
-class Graph(object):
-
+class Graph:
     def __init__(self, nodes=None, name=None):
         self.nodes = nodes or []
         self.node_lut = {node.name: node for node in self.nodes}
@@ -62,8 +62,8 @@ class Graph(object):
     def get_node(self, name):
         try:
             return self.node_lut[name]
-        except KeyError:
-            raise KaffeError('Layer not found: %s' % name)
+        except KeyError as error:
+            raise KaffeError(f"Layer not found: {name}") from error
 
     def get_input_nodes(self):
         return [node for node in self.nodes if len(node.parents) == 0]
@@ -72,26 +72,23 @@ class Graph(object):
         return [node for node in self.nodes if len(node.children) == 0]
 
     def topologically_sorted(self):
-        sorted_nodes = []
-        unsorted_nodes = list(self.nodes)
-        temp_marked = set()
-        perm_marked = set()
+        from collections import deque
 
-        def visit(node):
-            if node in temp_marked:
-                raise KaffeError('Graph is not a DAG.')
-            if node in perm_marked:
-                return
-            temp_marked.add(node)
+        indegrees = {node: len(node.parents) for node in self.nodes}
+        ready = deque(node for node in self.nodes if not indegrees[node])
+        result = []
+        while ready:
+            node = ready.popleft()
+            result.append(node)
             for child in node.children:
-                visit(child)
-            perm_marked.add(node)
-            temp_marked.remove(node)
-            sorted_nodes.insert(0, node)
-
-        while len(unsorted_nodes):
-            visit(unsorted_nodes.pop())
-        return sorted_nodes
+                if child not in indegrees:
+                    raise KaffeError("Graph contains a child outside its node list")
+                indegrees[child] -= 1
+                if not indegrees[child]:
+                    ready.append(child)
+        if len(result) != len(self.nodes):
+            raise KaffeError("Graph is not a DAG.")
+        return result
 
     def compute_output_shapes(self):
         sorted_nodes = self.topologically_sorted()
@@ -106,7 +103,7 @@ class Graph(object):
         for transformer in transformers:
             graph = transformer(graph)
             if graph is None:
-                raise KaffeError('Transformer failed: {}'.format(transformer))
+                raise KaffeError(f"Transformer failed: {transformer}")
             assert isinstance(graph, Graph)
         return graph
 
@@ -114,40 +111,41 @@ class Graph(object):
         return key in self.node_lut
 
     def __str__(self):
-        hdr = '{:<20} {:<30} {:>20} {:>20}'.format('Type', 'Name', 'Param', 'Output')
-        s = [hdr, '-' * 94]
+        hdr = "{:<20} {:<30} {:>20} {:>20}".format("Type", "Name", "Param", "Output")
+        s = [hdr, "-" * 94]
         for node in self.topologically_sorted():
             # If the node has learned parameters, display the first one's shape.
             # In case of convolutions, this corresponds to the weights.
-            data_shape = node.data[0].shape if node.data else '--'
-            out_shape = node.output_shape or '--'
-            s.append('{:<20} {:<30} {:>20} {:>20}'.format(node.kind, node.name, data_shape,
-                                                          tuple(out_shape)))
-        return '\n'.join(s)
+            data_shape = node.data[0].shape if node.data else "--"
+            out_shape = node.output_shape or "--"
+            s.append(
+                f"{node.kind:<20} {node.name:<30} {str(data_shape):>20} {str(tuple(out_shape)):>20}"
+            )
+        return "\n".join(s)
 
 
-class GraphBuilder(object):
-    '''Constructs a model graph from a Caffe protocol buffer definition.'''
+class GraphBuilder:
+    """Constructs a model graph from a Caffe protocol buffer definition."""
 
-    def __init__(self, def_path, phase='test'):
-        '''
+    def __init__(self, def_path, phase="test"):
+        """
         def_path: Path to the model definition (.prototxt)
         data_path: Path to the model data (.caffemodel)
         phase: Either 'test' or 'train'. Used for filtering phase-specific nodes.
-        '''
+        """
         self.def_path = def_path
         self.phase = phase
         self.load()
 
     def load(self):
-        '''Load the layer definitions from the prototxt.'''
+        """Load the layer definitions from the prototxt."""
         self.params = get_caffe_resolver().NetParameter()
-        with open(self.def_path, 'rb') as def_file:
+        with open(self.def_path, "rb") as def_file:
             text_format.Merge(def_file.read(), self.params)
 
     def filter_layers(self, layers):
-        '''Filter out layers based on the current phase.'''
-        phase_map = {0: 'train', 1: 'test'}
+        """Filter out layers based on the current phase."""
+        phase_map = {0: "train", 1: "test"}
         filtered_layer_names = set()
         filtered_layers = []
         for layer in layers:
@@ -155,13 +153,13 @@ class GraphBuilder(object):
             if len(layer.include):
                 phase = phase_map[layer.include[0].phase]
             if len(layer.exclude):
-                phase = phase_map[1 - layer.include[0].phase]
-            exclude = (phase != self.phase)
+                phase = phase_map[1 - layer.exclude[0].phase]
+            exclude = phase != self.phase
             # Dropout layers appear in a fair number of Caffe
             # test-time networks. These are just ignored. We'll
             # filter them out here.
-            if (not exclude) and (phase == 'test'):
-                exclude = (layer.type == LayerType.Dropout)
+            if (not exclude) and (phase == "test"):
+                exclude = layer.type == LayerType.Dropout
             if not exclude:
                 filtered_layers.append(layer)
                 # Guard against dupes.
@@ -170,39 +168,39 @@ class GraphBuilder(object):
         return filtered_layers
 
     def make_node(self, layer):
-        '''Create a graph node for the given layer.'''
+        """Create a graph node for the given layer."""
         kind = NodeKind.map_raw_kind(layer.type)
         if kind is None:
-            raise KaffeError('Unknown layer type encountered: %s' % layer.type)
+            raise KaffeError(f"Unknown layer type encountered: {layer.type}")
         # We want to use the layer's top names (the "output" names), rather than the
         # name attribute, which is more of readability thing than a functional one.
         # Other layers will refer to a node by its "top name".
         return Node(layer.name, kind, layer=layer)
 
     def make_input_nodes(self):
-        '''
+        """
         Create data input nodes.
 
         This method is for old-style inputs, where the input specification
         was not treated as a first-class layer in the prototext.
         Newer models use the "Input layer" type.
-        '''
+        """
         nodes = [Node(name, NodeKind.Data) for name in self.params.input]
         if len(nodes):
-            input_dim = map(int, self.params.input_dim)
+            input_dim = list(map(int, self.params.input_dim))
             if not input_dim:
                 if len(self.params.input_shape) > 0:
-                    input_dim = map(int, self.params.input_shape[0].dim)
+                    input_dim = list(map(int, self.params.input_shape[0].dim))
                 else:
-                    raise KaffeError('Dimensions for input not specified.')
+                    raise KaffeError("Dimensions for input not specified.")
             for node in nodes:
                 node.output_shape = tuple(input_dim)
         return nodes
 
     def build(self):
-        '''
+        """
         Builds the graph from the Caffe layer definitions.
-        '''
+        """
         # Get the layers
         layers = self.params.layers or self.params.layer
         # Filter out phase-excluded layers
@@ -232,8 +230,8 @@ class GraphBuilder(object):
                 if (parent_node is None) or (parent_node == node):
                     parent_node = graph.get_node(input_name)
                 node.add_parent(parent_node)
-            if len(layer.top)>1:
-                raise KaffeError('Multiple top nodes are not supported.')
+            if len(layer.top) > 1:
+                raise KaffeError("Multiple top nodes are not supported.")
             for output_name in layer.top:
                 if output_name == layer.name:
                     # Output is named the same as the node. No further action required.
@@ -257,7 +255,6 @@ class GraphBuilder(object):
 
 
 class NodeMapper(NodeDispatch):
-
     def __init__(self, graph):
         self.graph = graph
 
@@ -292,11 +289,11 @@ class NodeMapper(NodeDispatch):
         return [self.map_node(node) for node in chain]
 
     def map_node(self, node):
-        map_func = self.get_handler(node.kind, 'map')
+        map_func = self.get_handler(node.kind, "map")
         mapped_node = map_func(node)
         assert mapped_node is not None
         mapped_node.node = node
         return mapped_node
 
     def commit(self, mapped_chains):
-        raise NotImplementedError('Must be implemented by subclass.')
+        raise NotImplementedError("Must be implemented by subclass.")

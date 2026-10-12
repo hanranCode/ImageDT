@@ -1,45 +1,44 @@
-# coding: utf-8
-from __future__ import absolute_import
-from __future__ import print_function
+"""LeNet with the historical endpoint names and a maintained Keras backend."""
 
-import tensorflow as tf
+from imagedt._backends import require
 
-slim = tf.contrib.slim 
 
-def lenet(images, num_classes=10, is_training=True, drop_keep_prob=0.5,
-          prediction_fn=slim.softmax, scope='LeNet'):
-  """
-  Args: 
-    images: A batch of `Tensors` of size [batch_size, height, width, channels].
-    num_classes: classes of the training dataset
-    drop_keep_prob: set drop out prob
-  """
-  end_points = {}
+def lenet(
+    images,
+    num_classes=10,
+    is_training=True,
+    drop_keep_prob=0.5,
+    prediction_fn=None,
+    scope="LeNet",
+):
+    tf = require("tensorflow", "tensorflow")
+    if not 0 < drop_keep_prob <= 1:
+        raise ValueError("drop_keep_prob must be in (0, 1]")
+    layers = tf.keras.layers
+    endpoints = {}
+    with tf.name_scope(scope):
+        net = endpoints["conv1"] = layers.Conv2D(
+            32, 5, padding="same", activation="relu", name="conv1"
+        )(images)
+        net = endpoints["pool1"] = layers.MaxPool2D(2, name="pool1")(net)
+        net = endpoints["conv2"] = layers.Conv2D(
+            64, 5, padding="same", activation="relu", name="conv2"
+        )(net)
+        net = endpoints["pool2"] = layers.MaxPool2D(2, name="pool2")(net)
+        net = endpoints["Flatten"] = layers.Flatten(name="Flatten")(net)
+        net = endpoints["fc3"] = layers.Dense(1024, activation="relu", name="fc3")(net)
+        if not num_classes:
+            return net, endpoints
+        net = endpoints["dropout3"] = layers.Dropout(
+            1 - drop_keep_prob, name="dropout3"
+        )(net, training=is_training)
+        logits = endpoints["Logits"] = layers.Dense(num_classes, name="fc4")(net)
+        endpoints["Predictions"] = (
+            tf.nn.softmax(logits, name="Predictions")
+            if prediction_fn is None
+            else prediction_fn(logits, scope="Predictions")
+        )
+        return logits, endpoints
 
-  with tf.variable_scope(scope, 'LeNet', [images]):
-    net = end_points['conv1'] = slim.conv2d(images, 32, [5, 5], scope='conv1')
-    net = end_points['pool1'] = slim.max_pool2d(net, [2, 2], 2, scope='pool1')
-    net = end_points['conv2'] = slim.conv2d(net, 64, [5, 5], scope='conv2')
-    net = end_points['pool2'] = slim.max_pool2d(net, [2, 2], 2, scope='pool2')
-    net = slim.flatten(net)
-    end_points['Flatten'] = net
-
-    net = end_points['fc3'] = slim.fully_connected(net, 1024, scope='fc3')
-
-    if not num_classes:
-      return net, end_points
-
-    net = end_points['dropout3'] = slim.dropout(net, drop_keep_prob, is_training=is_training,
-          scope='dropout3')
-
-    logits = end_points['Logits'] = slim.fully_connected(
-            net, num_classes, activation_fn=None, scope='fc4')
-
-    net = end_points['Predictions'] = prediction_fn(logits, scope='Predictions')
-
-    return logits, end_points
 
 lenet.default_image_size = 28
-
-
-

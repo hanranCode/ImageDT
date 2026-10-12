@@ -1,5 +1,1 @@
-# coding: utf-8
-from __future__ import absolute_import
-from __future__ import print_function
-
-from .lite_wrapper import *
+from .lite_wrapper import Lite_Wrapper as Lite_Wrapper

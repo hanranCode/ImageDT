@@ -1,8 +1,8 @@
-'''
+"""
 A collection of graph transforms.
 
 A transformer is a callable that accepts a graph and returns a transformed version.
-'''
+"""
 
 import numpy as np
 
@@ -11,10 +11,10 @@ from .errors import KaffeError, print_stderr
 from .layers import NodeKind
 
 
-class DataInjector(object):
-    '''
+class DataInjector:
+    """
     Associates parameters loaded from a .caffemodel file with their corresponding nodes.
-    '''
+    """
 
     def __init__(self, def_path, data_path):
         # The .prototxt file defining the graph
@@ -37,13 +37,20 @@ class DataInjector(object):
     def load_using_caffe(self):
         caffe = get_caffe_resolver().caffe
         net = caffe.Net(self.def_path, self.data_path, caffe.TEST)
-        data = lambda blob: blob.data
-        self.params = [(k, map(data, v)) for k, v in net.params.items()]
+
+        def data(blob):
+            return blob.data
+
+        self.params = [(k, list(map(data, v))) for k, v in list(net.params.items())]
 
     def load_using_pb(self):
         data = get_caffe_resolver().NetParameter()
-        data.MergeFromString(open(self.data_path, 'rb').read())
-        pair = lambda layer: (layer.name, self.normalize_pb_data(layer))
+        with open(self.data_path, "rb") as stream:
+            data.MergeFromString(stream.read())
+
+        def pair(layer):
+            return layer.name, self.normalize_pb_data(layer)
+
         layers = data.layers or data.layer
         self.params = [pair(layer) for layer in layers if layer.blobs]
         self.did_use_pb = True
@@ -53,7 +60,7 @@ class DataInjector(object):
         for blob in layer.blobs:
             if len(blob.shape.dim):
                 dims = blob.shape.dim
-                c_o, c_i, h, w = map(int, [1] * (4 - len(dims)) + list(dims))
+                c_o, c_i, h, w = list(map(int, [1] * (4 - len(dims)) + list(dims)))
             else:
                 c_o = blob.num
                 c_i = blob.channels
@@ -72,11 +79,22 @@ class DataInjector(object):
         # potential for future issues.
         # The Caffe-backend does not suffer from this problem.
         data = list(data)
-        squeeze_indices = [1]  # Squeeze biases.
+        if node.kind == NodeKind.BatchNorm:
+            if len(data) != 3 or np.asarray(data[2]).size != 1:
+                raise KaffeError(
+                    "BatchNorm requires mean, variance and one scalar factor"
+                )
+            return [
+                np.asarray(data[0]).reshape(-1),
+                np.asarray(data[1]).reshape(-1),
+                float(np.asarray(data[2]).reshape(-1)[0]),
+            ]
+        if len(data) > 1:
+            data[1] = np.asarray(data[1]).reshape(-1)
+        if node.kind == NodeKind.Scale:
+            data[0] = np.asarray(data[0]).reshape(-1)
         if node.kind == NodeKind.InnerProduct:
-            squeeze_indices.append(0)  # Squeeze FC.
-        for idx in squeeze_indices:
-            data[idx] = np.squeeze(data[idx])
+            data[0] = np.asarray(data[0]).reshape(node.parameters.num_output, -1)
         return data
 
     def __call__(self, graph):
@@ -85,17 +103,18 @@ class DataInjector(object):
                 node = graph.get_node(layer_name)
                 node.data = self.adjust_parameters(node, data)
             else:
-                print_stderr('Ignoring parameters for non-existent layer: %s' % layer_name)
+                print_stderr(
+                    f"Ignoring parameters for non-existent layer: {layer_name}"
+                )
         return graph
 
 
-class DataReshaper(object):
-
+class DataReshaper:
     def __init__(self, mapping, replace=True):
         # A dictionary mapping NodeKind to the transposed order.
         self.mapping = mapping
         # The node kinds eligible for reshaping
-        self.reshaped_node_types = self.mapping.keys()
+        self.reshaped_node_types = list(self.mapping.keys())
         # If true, the reshaped data will replace the old one.
         # Otherwise, it's set to the reshaped_data attribute.
         self.replace = replace
@@ -111,8 +130,10 @@ class DataReshaper(object):
     def map(self, node_kind):
         try:
             return self.mapping[node_kind]
-        except KeyError:
-            raise KaffeError('Ordering not found for node kind: {}'.format(node_kind))
+        except KeyError as error:
+            raise KaffeError(
+                f"Ordering not found for node kind: {node_kind}"
+            ) from error
 
     def __call__(self, graph):
         for node in graph.nodes:
@@ -120,8 +141,8 @@ class DataReshaper(object):
                 continue
             if node.kind not in self.reshaped_node_types:
                 # Check for 2+ dimensional data
-                if any(len(tensor.shape) > 1 for tensor in node.data):
-                    print_stderr('Warning: parmaters not reshaped for node: {}'.format(node))
+                if any(np.ndim(tensor) > 1 for tensor in node.data):
+                    print_stderr(f"Warning: parmaters not reshaped for node: {node}")
                 continue
             transpose_order = self.map(node.kind)
             weights = node.data[0]
@@ -131,27 +152,34 @@ class DataReshaper(object):
                 in_shape = node.get_only_parent().output_shape
                 fc_shape = weights.shape
                 output_channels = fc_shape[0]
-                weights = weights.reshape((output_channels, in_shape.channels, in_shape.height,
-                                           in_shape.width))
+                weights = weights.reshape(
+                    (
+                        output_channels,
+                        in_shape.channels,
+                        in_shape.height,
+                        in_shape.width,
+                    )
+                )
                 weights = weights.transpose(self.map(NodeKind.Convolution))
-                node.reshaped_data = weights.reshape(fc_shape[transpose_order[0]],
-                                                     fc_shape[transpose_order[1]])
+                node.reshaped_data = weights.reshape(
+                    fc_shape[transpose_order[0]], fc_shape[transpose_order[1]]
+                )
             else:
                 node.reshaped_data = weights.transpose(transpose_order)
 
         if self.replace:
             for node in graph.nodes:
-                if hasattr(node, 'reshaped_data'):
+                if hasattr(node, "reshaped_data"):
                     # Set the weights
                     node.data[0] = node.reshaped_data
                     del node.reshaped_data
         return graph
 
 
-class SubNodeFuser(object):
-    '''
+class SubNodeFuser:
+    """
     An abstract helper for merging a single-child with its single-parent.
-    '''
+    """
 
     def __call__(self, graph):
         nodes = graph.nodes
@@ -180,18 +208,18 @@ class SubNodeFuser(object):
         return graph.replaced(transformed_nodes)
 
     def is_eligible_pair(self, parent, child):
-        '''Returns true if this parent/child pair is eligible for fusion.'''
-        raise NotImplementedError('Must be implemented by subclass.')
+        """Returns true if this parent/child pair is eligible for fusion."""
+        raise NotImplementedError("Must be implemented by subclass.")
 
     def merge(self, parent, child):
-        '''Merge the child node into the parent.'''
-        raise NotImplementedError('Must be implemented by subclass')
+        """Merge the child node into the parent."""
+        raise NotImplementedError("Must be implemented by subclass")
 
 
 class ReLUFuser(SubNodeFuser):
-    '''
+    """
     Fuses rectified linear units with their parent nodes.
-    '''
+    """
 
     def __init__(self, allowed_parent_types=None):
         # Fuse ReLUs when the parent node is one of the given types.
@@ -199,36 +227,42 @@ class ReLUFuser(SubNodeFuser):
         self.allowed_parent_types = allowed_parent_types
 
     def is_eligible_pair(self, parent, child):
-        return ((self.allowed_parent_types is None or parent.kind in self.allowed_parent_types) and
-                child.kind == NodeKind.ReLU)
+        return (
+            self.allowed_parent_types is None
+            or parent.kind in self.allowed_parent_types
+        ) and child.kind == NodeKind.ReLU
 
     def merge(self, parent, _):
-        parent.metadata['relu'] = True
+        parent.metadata["relu"] = True
 
 
 class BatchNormScaleBiasFuser(SubNodeFuser):
-    '''
+    """
     The original batch normalization paper includes two learned
-    parameters: a scaling factor \gamma and a bias \beta.
+    parameters: a scaling factor gamma and a bias beta.
     Caffe's implementation does not include these two. However, it is commonly
     replicated by adding a scaling+bias layer immidiately after the batch norm.
 
     This fuser merges the scaling+bias layer with the batch norm.
-    '''
+    """
 
     def is_eligible_pair(self, parent, child):
-        return (parent.kind == NodeKind.BatchNorm and child.kind == NodeKind.Scale and
-                child.parameters.axis == 1 and child.parameters.bias_term == True)
+        return (
+            parent.kind == NodeKind.BatchNorm
+            and child.kind == NodeKind.Scale
+            and child.parameters.axis == 1
+            and child.parameters.bias_term
+        )
 
     def merge(self, parent, child):
         parent.scale_bias_node = child
 
 
-class BatchNormPreprocessor(object):
-    '''
+class BatchNormPreprocessor:
+    """
     Prescale batch normalization parameters.
     Concatenate gamma (scale) and beta (bias) terms if set.
-    '''
+    """
 
     def __call__(self, graph):
         for node in graph.nodes:
@@ -243,18 +277,18 @@ class BatchNormPreprocessor(object):
             variance *= scaling_factor
             # Replace with the updated values
             node.data = [mean, variance]
-            if hasattr(node, 'scale_bias_node'):
+            if hasattr(node, "scale_bias_node"):
                 # Include the scale and bias terms
                 gamma, beta = node.scale_bias_node.data
                 node.data += [gamma, beta]
         return graph
 
 
-class NodeRenamer(object):
-    '''
+class NodeRenamer:
+    """
     Renames nodes in the graph using a given unary function that
     accepts a node and returns its new name.
-    '''
+    """
 
     def __init__(self, renamer):
         self.renamer = renamer
@@ -262,29 +296,32 @@ class NodeRenamer(object):
     def __call__(self, graph):
         for node in graph.nodes:
             node.name = self.renamer(node)
+        graph.node_lut = {node.name: node for node in graph.nodes}
+        if len(graph.node_lut) != len(graph.nodes):
+            raise KaffeError("Node renaming produced duplicate names")
         return graph
 
 
-class ParameterNamer(object):
-    '''
+class ParameterNamer:
+    """
     Convert layer data arrays to a dictionary mapping parameter names to their values.
-    '''
+    """
 
     def __call__(self, graph):
         for node in graph.nodes:
             if node.data is None:
                 continue
             if node.kind in (NodeKind.Convolution, NodeKind.InnerProduct):
-                names = ('weights',)
+                names = ("weights",)
                 if node.parameters.bias_term:
-                    names += ('biases',)
+                    names += ("biases",)
             elif node.kind == NodeKind.BatchNorm:
-                names = ('mean', 'variance')
+                names = ("mean", "variance")
                 if len(node.data) == 4:
-                    names += ('scale', 'offset')
+                    names += ("scale", "offset")
             else:
-                print_stderr('WARNING: Unhandled parameters: {}'.format(node.kind))
+                print_stderr(f"WARNING: Unhandled parameters: {node.kind}")
                 continue
             assert len(names) == len(node.data)
-            node.data = dict(zip(names, node.data))
+            node.data = dict(list(zip(names, node.data, strict=True)))
         return graph

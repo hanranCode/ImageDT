@@ -1,0 +1,1345 @@
+{
+  "imagedt/converters/caffe_coreml.py": {
+    "convert": [
+      "model_path",
+      "prototxt_path",
+      "label_path",
+      "red",
+      "green",
+      "blue",
+      "scale",
+      "bgr",
+      "output_model_name"
+    ]
+  },
+  "imagedt/converters/caffe_tfmodel.py": {
+    "fatal_error": [
+      "msg"
+    ],
+    "assert_exist_files": [],
+    "convert": [
+      "prototxt_path",
+      "caffemodel_path",
+      "phase",
+      "output_model_name"
+    ]
+  },
+  "imagedt/converters/taffe/caffe/resolver.py": {
+    "CaffeResolver": {
+      "import_caffe": [
+        "self"
+      ],
+      "has_pycaffe": [
+        "self"
+      ]
+    },
+    "get_caffe_resolver": [],
+    "has_pycaffe": [],
+    "show_fallback_warning": []
+  },
+  "imagedt/converters/taffe/errors.py": {
+    "KaffeError": {},
+    "print_stderr": [
+      "msg"
+    ]
+  },
+  "imagedt/converters/taffe/graph.py": {
+    "Node": {
+      "add_parent": [
+        "self",
+        "parent_node"
+      ],
+      "add_child": [
+        "self",
+        "child_node"
+      ],
+      "get_only_parent": [
+        "self"
+      ],
+      "parameters": [
+        "self"
+      ]
+    },
+    "Graph": {
+      "add_node": [
+        "self",
+        "node"
+      ],
+      "get_node": [
+        "self",
+        "name"
+      ],
+      "get_input_nodes": [
+        "self"
+      ],
+      "get_output_nodes": [
+        "self"
+      ],
+      "topologically_sorted": [
+        "self"
+      ],
+      "compute_output_shapes": [
+        "self"
+      ],
+      "replaced": [
+        "self",
+        "new_nodes"
+      ],
+      "transformed": [
+        "self",
+        "transformers"
+      ]
+    },
+    "GraphBuilder": {
+      "load": [
+        "self"
+      ],
+      "filter_layers": [
+        "self",
+        "layers"
+      ],
+      "make_node": [
+        "self",
+        "layer"
+      ],
+      "make_input_nodes": [
+        "self"
+      ],
+      "build": [
+        "self"
+      ]
+    },
+    "NodeMapper": {
+      "map": [
+        "self"
+      ],
+      "map_chain": [
+        "self",
+        "chain"
+      ],
+      "map_node": [
+        "self",
+        "node"
+      ],
+      "commit": [
+        "self",
+        "mapped_chains"
+      ]
+    }
+  },
+  "imagedt/converters/taffe/layers.py": {
+    "NodeKind": {
+      "map_raw_kind": [
+        "kind"
+      ],
+      "compute_output_shape": [
+        "node"
+      ]
+    },
+    "NodeDispatchError": {},
+    "NodeDispatch": {
+      "get_handler_name": [
+        "node_kind"
+      ],
+      "get_handler": [
+        "self",
+        "node_kind",
+        "prefix"
+      ]
+    },
+    "LayerAdapter": {
+      "parameters": [
+        "self"
+      ],
+      "get_kernel_value": [
+        "scalar",
+        "repeated",
+        "idx",
+        "default"
+      ],
+      "kernel_parameters": [
+        "self"
+      ]
+    }
+  },
+  "imagedt/converters/taffe/shapes.py": {
+    "get_filter_output_shape": [
+      "i_h",
+      "i_w",
+      "params",
+      "round_func"
+    ],
+    "get_strided_kernel_output_shape": [
+      "node",
+      "round_func"
+    ],
+    "shape_not_implemented": [
+      "node"
+    ],
+    "shape_identity": [
+      "node"
+    ],
+    "shape_scalar": [
+      "node"
+    ],
+    "shape_data": [
+      "node"
+    ],
+    "shape_mem_data": [
+      "node"
+    ],
+    "shape_concat": [
+      "node"
+    ],
+    "shape_convolution": [
+      "node"
+    ],
+    "shape_pool": [
+      "node"
+    ],
+    "shape_inner_product": [
+      "node"
+    ]
+  },
+  "imagedt/converters/taffe/tensorflow/network.py": {
+    "layer": [
+      "op"
+    ],
+    "Network": {
+      "setup": [
+        "self"
+      ],
+      "load": [
+        "self",
+        "data_path",
+        "session",
+        "ignore_missing"
+      ],
+      "feed": [
+        "self"
+      ],
+      "get_output": [
+        "self"
+      ],
+      "get_unique_name": [
+        "self",
+        "prefix"
+      ],
+      "make_var": [
+        "self",
+        "name",
+        "shape"
+      ],
+      "validate_padding": [
+        "self",
+        "padding"
+      ],
+      "conv": [
+        "self",
+        "input",
+        "k_h",
+        "k_w",
+        "c_o",
+        "s_h",
+        "s_w",
+        "name",
+        "relu",
+        "padding",
+        "group",
+        "biased"
+      ],
+      "relu": [
+        "self",
+        "input",
+        "name"
+      ],
+      "max_pool": [
+        "self",
+        "input",
+        "k_h",
+        "k_w",
+        "s_h",
+        "s_w",
+        "name",
+        "padding"
+      ],
+      "avg_pool": [
+        "self",
+        "input",
+        "k_h",
+        "k_w",
+        "s_h",
+        "s_w",
+        "name",
+        "padding"
+      ],
+      "lrn": [
+        "self",
+        "input",
+        "radius",
+        "alpha",
+        "beta",
+        "name",
+        "bias"
+      ],
+      "concat": [
+        "self",
+        "inputs",
+        "axis",
+        "name"
+      ],
+      "add": [
+        "self",
+        "inputs",
+        "name"
+      ],
+      "fc": [
+        "self",
+        "input",
+        "num_out",
+        "name",
+        "relu"
+      ],
+      "softmax": [
+        "self",
+        "input",
+        "name"
+      ],
+      "batch_normalization": [
+        "self",
+        "input",
+        "name",
+        "scale_offset",
+        "relu"
+      ],
+      "dropout": [
+        "self",
+        "input",
+        "keep_prob",
+        "name"
+      ]
+    }
+  },
+  "imagedt/converters/taffe/tensorflow/transformer.py": {
+    "get_padding_type": [
+      "kernel_params",
+      "input_shape",
+      "output_shape"
+    ],
+    "TensorFlowNode": {
+      "format": [
+        "self",
+        "arg"
+      ],
+      "pair": [
+        "self",
+        "key",
+        "value"
+      ],
+      "emit": [
+        "self"
+      ]
+    },
+    "MaybeActivated": {},
+    "TensorFlowMapper": {
+      "get_kernel_params": [
+        "self",
+        "node"
+      ],
+      "map_convolution": [
+        "self",
+        "node"
+      ],
+      "map_relu": [
+        "self",
+        "node"
+      ],
+      "map_pooling": [
+        "self",
+        "node"
+      ],
+      "map_inner_product": [
+        "self",
+        "node"
+      ],
+      "map_softmax": [
+        "self",
+        "node"
+      ],
+      "map_lrn": [
+        "self",
+        "node"
+      ],
+      "map_concat": [
+        "self",
+        "node"
+      ],
+      "map_dropout": [
+        "self",
+        "node"
+      ],
+      "map_batch_norm": [
+        "self",
+        "node"
+      ],
+      "map_eltwise": [
+        "self",
+        "node"
+      ],
+      "commit": [
+        "self",
+        "chains"
+      ]
+    },
+    "TensorFlowEmitter": {
+      "indent": [
+        "self"
+      ],
+      "outdent": [
+        "self"
+      ],
+      "statement": [
+        "self",
+        "s"
+      ],
+      "emit_imports": [
+        "self"
+      ],
+      "emit_class_def": [
+        "self",
+        "name"
+      ],
+      "emit_setup_def": [
+        "self"
+      ],
+      "emit_parents": [
+        "self",
+        "chain"
+      ],
+      "emit_node": [
+        "self",
+        "node"
+      ],
+      "emit": [
+        "self",
+        "name",
+        "chains"
+      ]
+    },
+    "TensorFlowTransformer": {
+      "load": [
+        "self",
+        "def_path",
+        "data_path",
+        "phase"
+      ],
+      "transform_data": [
+        "self"
+      ],
+      "transform_source": [
+        "self"
+      ]
+    }
+  },
+  "imagedt/converters/taffe/transformers.py": {
+    "DataInjector": {
+      "load": [
+        "self"
+      ],
+      "load_using_caffe": [
+        "self"
+      ],
+      "load_using_pb": [
+        "self"
+      ],
+      "normalize_pb_data": [
+        "self",
+        "layer"
+      ],
+      "adjust_parameters": [
+        "self",
+        "node",
+        "data"
+      ]
+    },
+    "DataReshaper": {
+      "has_spatial_parent": [
+        "self",
+        "node"
+      ],
+      "map": [
+        "self",
+        "node_kind"
+      ]
+    },
+    "SubNodeFuser": {
+      "is_eligible_pair": [
+        "self",
+        "parent",
+        "child"
+      ],
+      "merge": [
+        "self",
+        "parent",
+        "child"
+      ]
+    },
+    "ReLUFuser": {
+      "is_eligible_pair": [
+        "self",
+        "parent",
+        "child"
+      ],
+      "merge": [
+        "self",
+        "parent",
+        "_"
+      ]
+    },
+    "BatchNormScaleBiasFuser": {
+      "is_eligible_pair": [
+        "self",
+        "parent",
+        "child"
+      ],
+      "merge": [
+        "self",
+        "parent",
+        "child"
+      ]
+    },
+    "BatchNormPreprocessor": {},
+    "NodeRenamer": {},
+    "ParameterNamer": {}
+  },
+  "imagedt/converters/tfmodel_lite.py": {
+    "convert": [
+      "graph_def_file",
+      "output_file",
+      "output_format",
+      "inference_type",
+      "inference_input_type",
+      "input_array",
+      "input_shape",
+      "output_arrays"
+    ]
+  },
+  "imagedt/converters/tfrecords.py": {
+    "int64_feature": [
+      "values"
+    ],
+    "bytes_feature": [
+      "values"
+    ],
+    "float_feature": [
+      "values"
+    ],
+    "ImageReader": {
+      "read_image_dims": [
+        "self",
+        "sess",
+        "image_data"
+      ],
+      "decode_jpeg": [
+        "self",
+        "sess",
+        "image_data"
+      ]
+    },
+    "get_files_dir_dict": [
+      "all_files"
+    ],
+    "get_image_pairs": [
+      "data_dir"
+    ],
+    "get_label_dict": [
+      "dir_dict"
+    ],
+    "write_laebl_lines": [
+      "root_dir",
+      "all_files",
+      "label_map"
+    ],
+    "image_to_tfexample": [
+      "image_data",
+      "image_format",
+      "height",
+      "width",
+      "class_id"
+    ],
+    "convert_to_tfrecord": [
+      "f_lines",
+      "root_dir"
+    ]
+  },
+  "imagedt/decorator/decorator_time.py": {
+    "time_cost": [
+      "func"
+    ]
+  },
+  "imagedt/dir/dir_loop.py": {
+    "LoopFile": {
+      "start": [
+        "self",
+        "func"
+      ],
+      "loop_file": [
+        "self",
+        "root_dir"
+      ]
+    },
+    "loop": [
+      "root",
+      "extensions"
+    ],
+    "get_dir_images": [
+      "root",
+      "extensions"
+    ]
+  },
+  "imagedt/file/file_operate.py": {
+    "FilesOp": {
+      "get_abs_path": [
+        "self",
+        "file_dir",
+        "files_list"
+      ],
+      "check_dir_exist": [
+        "self",
+        "path"
+      ],
+      "check_file_exist": [
+        "self",
+        "fpath"
+      ],
+      "fillter_dirname": [
+        "self",
+        "file_paths"
+      ],
+      "fillter_file_type": [
+        "self",
+        "file_paths"
+      ],
+      "rename_with_uuid": [
+        "self",
+        "fname",
+        "uid"
+      ],
+      "rename_data_pairs": [
+        "self",
+        "file_pair",
+        "uid"
+      ],
+      "assert_not_in_op": [
+        "self",
+        "member",
+        "container"
+      ],
+      "assert_in_op": [
+        "self",
+        "member",
+        "container"
+      ],
+      "assert_instance_op": [
+        "self",
+        "inst",
+        "tar_inst"
+      ],
+      "del_broken_image": [
+        "self",
+        "root_dir"
+      ],
+      "check_data_pairs": [
+        "self",
+        "root_dir",
+        "anno_type"
+      ],
+      "get_jpg_xml_pairs": [
+        "self",
+        "root_dir",
+        "anno_type"
+      ],
+      "rename_file_with_uuid": [
+        "self",
+        "root_dir"
+      ],
+      "rename_single_file_uuid": [
+        "self",
+        "root_dir"
+      ],
+      "loop_dir": [
+        "self",
+        "root_dir"
+      ],
+      "rename_class_dir": [
+        "self",
+        "root_dir",
+        "before_cls_str"
+      ]
+    }
+  },
+  "imagedt/file/file_write.py": {
+    "write_txt": [
+      "data",
+      "path",
+      "separator"
+    ],
+    "write_csv": [
+      "data",
+      "path",
+      "is_excel"
+    ],
+    "read_csv": [
+      "path",
+      "delimiter"
+    ],
+    "readlines": [
+      "file_path"
+    ],
+    "write_json": [
+      "json_objects",
+      "file_path"
+    ],
+    "read_json": [
+      "file_path"
+    ],
+    "decode_strs": [
+      "strs"
+    ],
+    "writeExcel": [
+      "write_infos_mul",
+      "excel_path",
+      "sheetNames",
+      "set_color"
+    ]
+  },
+  "imagedt/file/parse_annotation.py": {
+    "Anno_OP": {
+      "read_xml": [
+        "self",
+        "fxml"
+      ],
+      "parse_bndx_object": [
+        "self",
+        "bndbox_object"
+      ],
+      "read_txt_bndbox": [
+        "self",
+        "fpath"
+      ],
+      "get_object_bndbox": [
+        "self",
+        "sku_object"
+      ],
+      "get_label_object": [
+        "self",
+        "fxml"
+      ],
+      "parse_lab_xml": [
+        "self",
+        "fxml"
+      ],
+      "load_annoataion": [
+        "self",
+        "poly_file"
+      ],
+      "parse_poly_locations": [
+        "self",
+        "loca_info"
+      ],
+      "convert_poly_to_Xml": [
+        "self",
+        "poly_file"
+      ],
+      "reset_xml_cls": [
+        "self",
+        "xml_dir",
+        "name",
+        "desc",
+        "resetid_list"
+      ],
+      "filter_xml_classes": [
+        "self",
+        "xml_dir",
+        "name",
+        "desc",
+        "resetid_list"
+      ],
+      "write_anno_object": [
+        "self",
+        "annotation",
+        "xmlname"
+      ],
+      "wirte_xml_file": [
+        "self",
+        "xml_etree",
+        "xml_path"
+      ],
+      "write_xml": [
+        "self",
+        "xmlname",
+        "bndboxs",
+        "scores",
+        "classes",
+        "thresh"
+      ]
+    }
+  },
+  "imagedt/image/image_pil.py": {
+    "alpha_to_color": [
+      "image",
+      "color"
+    ]
+  },
+  "imagedt/image/process.py": {
+    "clear_dir": [
+      "images_dir",
+      "debug",
+      "multi_process"
+    ],
+    "noise_padd": [
+      "img",
+      "edge_size",
+      "start_pixel_value",
+      "end_pixel_value"
+    ],
+    "remove_broken_image": [
+      "data_dir"
+    ],
+    "resize_with_scale": [
+      "cvmat",
+      "max_length"
+    ],
+    "padd_pixel": [
+      "img",
+      "edge_size_w",
+      "edge_size_h"
+    ],
+    "reduce_imagenet_mean": [
+      "cv_mat"
+    ],
+    "swap_chanel_to_RGB": [
+      "cvmat"
+    ],
+    "vgg_preprocesing": [
+      "cvmat"
+    ],
+    "inception_preprocesing": [
+      "cvmat"
+    ],
+    "our_processing": [
+      "cvmat"
+    ],
+    "md5": [
+      "fname"
+    ],
+    "get_box": [
+      "bndbox",
+      "loca_type"
+    ],
+    "put_cvtext": [
+      "img",
+      "text",
+      "posi",
+      "color",
+      "fontScale",
+      "thickness",
+      "font_type"
+    ],
+    "draw_cvrect": [
+      "img",
+      "bndboxes",
+      "box_color",
+      "border",
+      "font_color",
+      "draw_strs",
+      "fontScale",
+      "compare_strs",
+      "draw_location",
+      "font_type",
+      "thickness"
+    ],
+    "cv_show": [
+      "imgs",
+      "win_name"
+    ],
+    "resize_dir_images_with_scale": [
+      "image_dir",
+      "resize_max_edge"
+    ],
+    "points_to_contour": [
+      "points"
+    ],
+    "points_to_contours": [
+      "points"
+    ],
+    "put_text": [
+      "img",
+      "text",
+      "pos",
+      "scale",
+      "color",
+      "thickness"
+    ],
+    "draw_contours": [
+      "img",
+      "contours",
+      "idx",
+      "color",
+      "border_width"
+    ],
+    "polly_points2contours": [
+      "points"
+    ],
+    "rename_imfiles_with_md5": [
+      "imdir",
+      "rename_xml"
+    ]
+  },
+  "imagedt/tensorflow/lite/lite_wrapper.py": {
+    "Lite_Wrapper": {
+      "load_model": [
+        "self"
+      ],
+      "predict": [
+        "self",
+        "input_data"
+      ]
+    }
+  },
+  "imagedt/tensorflow/network/lenet.py": {
+    "lenet": [
+      "images",
+      "num_classes",
+      "is_training",
+      "drop_keep_prob",
+      "prediction_fn",
+      "scope"
+    ]
+  },
+  "imagedt/tensorflow/optim/loss.py": {
+    "smooth_l1_loss": [
+      "y_true",
+      "y_pred"
+    ],
+    "arcface_loss": [
+      "embedding",
+      "labels",
+      "out_num",
+      "w_init",
+      "s",
+      "m"
+    ]
+  },
+  "imagedt/tensorflow/tools/DataInterface.py": {
+    "DataSet": {
+      "x": [
+        "self"
+      ],
+      "y": [
+        "self"
+      ],
+      "count": [
+        "self"
+      ],
+      "set_x": [
+        "self",
+        "x"
+      ],
+      "set_y": [
+        "self",
+        "y"
+      ],
+      "reset_step": [
+        "self"
+      ],
+      "batch_count": [
+        "self",
+        "batch_size",
+        "isFixed"
+      ],
+      "next_batch": [
+        "self",
+        "batch_size",
+        "isFixed"
+      ]
+    },
+    "DataSets": {
+      "test": [
+        "self"
+      ],
+      "validate": [
+        "self"
+      ],
+      "train": [
+        "self"
+      ],
+      "x_shape": [
+        "self"
+      ],
+      "set_x_shape": [
+        "self",
+        "x_shape"
+      ],
+      "y_shape": [
+        "self"
+      ],
+      "set_y_shape": [
+        "self",
+        "y_shape"
+      ]
+    }
+  },
+  "imagedt/tensorflow/tools/Records.py": {
+    "ImageReader": {
+      "read_image_dims": [
+        "self",
+        "sess",
+        "image_data"
+      ],
+      "decode_jpeg": [
+        "self",
+        "sess",
+        "image_data"
+      ]
+    },
+    "Record_Writer": {
+      "image_to_tfexample": [
+        "self",
+        "image_data",
+        "image_format",
+        "height",
+        "width",
+        "class_id"
+      ],
+      "convert_to_tfrecord": [
+        "self",
+        "f_lines",
+        "svae_dir",
+        "dataset_type"
+      ],
+      "map_int": [
+        "self",
+        "m_list"
+      ],
+      "create_tf_example": [
+        "self",
+        "sess",
+        "jpg_path",
+        "anno_infos"
+      ],
+      "write_cls_records": [
+        "self",
+        "train_images_file",
+        "save_dir",
+        "test_ratio"
+      ],
+      "converte_anno_info": [
+        "self",
+        "data_dir",
+        "det_cls_name"
+      ],
+      "write_detect_records": [
+        "self",
+        "data_dir",
+        "save_dir",
+        "record_name"
+      ]
+    },
+    "write_pbmodel_summery": [
+      "tf_pbmodel",
+      "log_dir"
+    ]
+  },
+  "imagedt/tensorflow/tools/data_provider.py": {
+    "dynamically_loaded_data": [
+      "image_paths",
+      "labels",
+      "height",
+      "width"
+    ],
+    "resize_image_keep_aspect": [
+      "image",
+      "max_edge"
+    ],
+    "tf_noise_padd": [
+      "images",
+      "max_edge",
+      "start_pixel",
+      "end_pixel"
+    ],
+    "tf_JitterCut": [
+      "images",
+      "jitter"
+    ],
+    "Data_Provider": {
+      "read_from_tfrecord": [
+        "self",
+        "batch_size",
+        "image_shape"
+      ]
+    }
+  },
+  "imagedt/tensorflow/tools/dataset_util.py": {
+    "int64_list_feature": [
+      "value"
+    ],
+    "bytes_list_feature": [
+      "value"
+    ],
+    "float_list_feature": [
+      "value"
+    ],
+    "int64_feature": [
+      "values"
+    ],
+    "bytes_feature": [
+      "values"
+    ],
+    "float_feature": [
+      "values"
+    ],
+    "read_examples_list": [
+      "path"
+    ],
+    "recursive_parse_xml_to_dict": [
+      "xml"
+    ],
+    "make_initializable_iterator": [
+      "dataset"
+    ],
+    "read_dataset": [
+      "file_read_func",
+      "decode_func",
+      "input_files",
+      "config"
+    ]
+  },
+  "imagedt/tensorflow/tools/tfmodel_wrapper.py": {
+    "TFmodel_Wrapper": {
+      "reset_node_name": [
+        "self"
+      ],
+      "predict": [
+        "self",
+        "images"
+      ],
+      "extract": [
+        "self",
+        "image"
+      ]
+    }
+  },
+  "imagedt/tensorflow/tools/tfrecords.py": {
+    "visual_records": [
+      "tfrecords_path"
+    ]
+  },
+  "imagedt/tools/com_tools.py": {
+    "getip": []
+  },
+  "imagedt/tools/metrics/detect_eval.py": {
+    "parse_rec": [
+      "filename"
+    ],
+    "parse_detect": [
+      "detannos"
+    ],
+    "load_detect_lines": [
+      "detannos",
+      "conf"
+    ],
+    "get_xmls_basename": [
+      "xml_path"
+    ],
+    "voc_eval": [
+      "detpath",
+      "annopath",
+      "ovthresh",
+      "det_file_type",
+      "conf",
+      "set_gt_labels"
+    ]
+  },
+  "imagedt/tools/metrics/f1_score.py": {
+    "load_label_Dict": [
+      "lines"
+    ],
+    "write_predict_details": [
+      "predict_infos",
+      "label_infos",
+      "label_map_dict"
+    ],
+    "gernerate_infos_dict": [
+      "predicts",
+      "true_labels",
+      "label_map_dict"
+    ],
+    "calculate_f1_score": [
+      "predict_file",
+      "gt_file",
+      "labelt_file"
+    ]
+  },
+  "imagedt/tools/metrics/roc_curve.py": {
+    "roc": [
+      "test_file",
+      "show_fig"
+    ]
+  },
+  "imagedt/tools/pdf.py": {
+    "pdf2image": [
+      "pdf_path",
+      "save_out",
+      "dpi"
+    ]
+  },
+  "imagedt/tools/plot_curve.py": {
+    "PlotCurve": {
+      "load_dataset_infos": [
+        "self",
+        "data_dir"
+      ],
+      "set_xy_values": [
+        "self",
+        "sample_dict"
+      ],
+      "add_bar_values": [
+        "self",
+        "rects"
+      ],
+      "add_avg_yline": [
+        "self"
+      ],
+      "plot_datas": [
+        "self",
+        "data_dir",
+        "add_bar_values",
+        "title",
+        "curve_type"
+      ]
+    }
+  },
+  "imagedt/tools/text_generator/background_generator.py": {
+    "BackgroundGenerator": {
+      "gaussian_noise": [
+        "cls",
+        "height",
+        "width"
+      ],
+      "plain_white": [
+        "cls",
+        "height",
+        "width"
+      ],
+      "quasicrystal": [
+        "cls",
+        "height",
+        "width"
+      ],
+      "picture": [
+        "cls",
+        "height",
+        "width"
+      ]
+    }
+  },
+  "imagedt/tools/text_generator/computer_text_generator.py": {
+    "ComputerTextGenerator": {
+      "generate": [
+        "cls",
+        "text",
+        "font",
+        "text_color",
+        "font_size",
+        "orientation",
+        "space_width"
+      ]
+    }
+  },
+  "imagedt/tools/text_generator/data_generator.py": {
+    "FakeTextDataGenerator": {
+      "generate_from_tuple": [
+        "cls",
+        "t"
+      ],
+      "generate": [
+        "cls",
+        "index",
+        "text",
+        "font",
+        "out_dir",
+        "size",
+        "extension",
+        "skewing_angle",
+        "random_skew",
+        "blur",
+        "random_blur",
+        "background_type",
+        "distorsion_type",
+        "distorsion_orientation",
+        "is_handwritten",
+        "name_format",
+        "width",
+        "alignment",
+        "text_color",
+        "orientation",
+        "space_width",
+        "save"
+      ]
+    }
+  },
+  "imagedt/tools/text_generator/distorsion_generator.py": {
+    "DistorsionGenerator": {
+      "apply_func_distorsion": [
+        "cls",
+        "image",
+        "vertical",
+        "horizontal",
+        "max_offset",
+        "func"
+      ],
+      "sin": [
+        "cls",
+        "image",
+        "vertical",
+        "horizontal"
+      ],
+      "cos": [
+        "cls",
+        "image",
+        "vertical",
+        "horizontal"
+      ],
+      "random": [
+        "cls",
+        "image",
+        "vertical",
+        "horizontal"
+      ]
+    }
+  },
+  "imagedt/tools/text_generator/handwritten_text_generator.py": {
+    "HandwrittenTextGenerator": {
+      "generate": [
+        "cls",
+        "text"
+      ]
+    }
+  },
+  "imagedt/tools/text_generator/text_generator.py": {
+    "Text_Generator": {
+      "set_params": [
+        "self",
+        "tests"
+      ],
+      "generate_texts": [
+        "self"
+      ],
+      "gen_price_realtime_datas": [
+        "self",
+        "batch_size"
+      ]
+    }
+  }
+}

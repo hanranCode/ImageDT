@@ -2,7 +2,8 @@ import sys
 
 SHARED_CAFFE_RESOLVER = None
 
-class CaffeResolver(object):
+
+class CaffeResolver:
     def __init__(self):
         self.import_caffe()
 
@@ -12,11 +13,13 @@ class CaffeResolver(object):
             # Try to import PyCaffe first
             # sys.path.append('/data/project/idt-pitaya-serv-train/caffe/python')
             import caffe
+
             self.caffe = caffe
         except Exception as e:
             # Fall back to the protobuf implementation
-            print e
+            print(e)
             from . import caffe_pb2
+
             self.caffepb = caffe_pb2
             show_fallback_warning()
         if self.caffe:
@@ -28,17 +31,20 @@ class CaffeResolver(object):
     def has_pycaffe(self):
         return self.caffe is not None
 
+
 def get_caffe_resolver():
     global SHARED_CAFFE_RESOLVER
     if SHARED_CAFFE_RESOLVER is None:
         SHARED_CAFFE_RESOLVER = CaffeResolver()
     return SHARED_CAFFE_RESOLVER
 
+
 def has_pycaffe():
     return get_caffe_resolver().has_pycaffe()
 
+
 def show_fallback_warning():
-    msg = '''
+    msg = """
 ------------------------------------------------------------
     WARNING: PyCaffe not found!
     Falling back to a pure protocol buffer implementation.
@@ -46,5 +52,5 @@ def show_fallback_warning():
     * This backend is UNTESTED!
 ------------------------------------------------------------
 
-'''
+"""
     sys.stderr.write(msg)

@@ -1,5 +1,1 @@
-# coding: utf-8
-from __future__ import absolute_import
-from __future__ import print_function
-
-from . import *
+"""Synthetic text utilities; access submodules explicitly."""

@@ -1,5 +1,14 @@
-# coding: utf-8
-from __future__ import absolute_import
-from __future__ import print_function
+"""Compatibility exports, loaded on first use."""
 
-from .decorator_time import *
+from imagedt._lazy import resolve as _resolve
+
+_EXPORTS = {"time_cost": (".decorator_time", "time_cost")}
+__all__ = list(_EXPORTS)
+
+
+def __getattr__(name):
+    return _resolve(name, _EXPORTS, globals(), __name__)
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))

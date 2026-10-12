@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import absolute_import
-from __future__ import print_function
-
-from . import network
-from . import optim
-from .trainer import *
+from . import network as network
+from . import optim as optim
+from . import trainer as trainer

@@ -1,2 +1,2 @@
-from .transformer import TensorFlowTransformer
-from .network import Network
+from .network import Network as Network
+from .transformer import TensorFlowTransformer as TensorFlowTransformer

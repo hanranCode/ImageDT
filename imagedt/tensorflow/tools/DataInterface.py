@@ -1,11 +1,10 @@
-# coding: utf-8
 import numpy as np
 
 
 # 数据
-class DataSet(object):
+class DataSet:
     def __init__(self):
-        super(DataSet, self).__init__()
+        super().__init__()
         self._x = None
         self._y = None
         self._index_in_epoch = 0
@@ -20,6 +19,8 @@ class DataSet(object):
 
     @property
     def count(self):
+        if self._x is None:
+            return 0
         if isinstance(self._x, list):
             return len(self._x)
         else:
@@ -27,6 +28,7 @@ class DataSet(object):
 
     def set_x(self, x):
         self._x = x
+        self.reset_step()
 
     def set_y(self, y):
         self._y = y
@@ -34,41 +36,48 @@ class DataSet(object):
     def reset_step(self):
         self._index_in_epoch = 0
 
+    def _validate_batch(self, batch_size):
+        if not isinstance(batch_size, int) or batch_size <= 0:
+            raise ValueError("batch_size must be a positive integer")
+
     def batch_count(self, batch_size, isFixed=True):
-        if (self.count % batch_size) != 0 and not isFixed:
-            return int(self.count / batch_size) + 1
-        else:
-            return int(self.count / batch_size)
+        self._validate_batch(batch_size)
+        return (
+            self.count // batch_size
+            if isFixed
+            else (self.count + batch_size - 1) // batch_size
+        )
 
     def next_batch(self, batch_size, isFixed=True):
-            start = self._index_in_epoch
-            end = self._index_in_epoch + batch_size
-            if self._index_in_epoch == 0:
-                perm = np.arange(self.count)
-                np.random.shuffle(perm)
-                if isinstance(self._x, list):
-                    self._x = [self._x[i] for i in perm]
-                else:
-                    self._x = self._x[perm]
-                if isinstance(self._y, list):
-                    self._y = [self._y[i] for i in perm]
-                else:
-                    self._y = self._y[perm]
+        self._validate_batch(batch_size)
+        if self._y is None or self.count != len(self._y):
+            raise ValueError("x and y must have equal length")
+        if self.count == 0 or (isFixed and batch_size > self.count):
+            raise ValueError("dataset is too small for requested batch")
+        if self._index_in_epoch >= self.count or (
+            isFixed and self._index_in_epoch + batch_size > self.count
+        ):
+            self.reset_step()
+        if self._index_in_epoch == 0:
+            perm = np.random.permutation(self.count)
+            self._x = (
+                [self._x[i] for i in perm]
+                if isinstance(self._x, list)
+                else self._x[perm]
+            )
+            self._y = (
+                [self._y[i] for i in perm]
+                if isinstance(self._y, list)
+                else self._y[perm]
+            )
+        start = self._index_in_epoch
+        end = min(start + batch_size, self.count)
+        self._index_in_epoch = end
+        return self._x[start:end], self._y[start:end]
 
-            self._index_in_epoch += batch_size
-
-            if end > self.count:
-                if isFixed:
-                    self._index_in_epoch = 0
-                    return self.next_batch(batch_size, isFixed)
-                else:
-                        self._index_in_epoch = 0
-                        end = self.count
-
-            return self._x[start:end], self._y[start:end]
 
 # 数据集
-class DataSets(object):
+class DataSets:
     def __init__(self):
         self._train = DataSet()
         self._validate = DataSet()
@@ -91,7 +100,7 @@ class DataSets(object):
     @property
     def x_shape(self):
         if self._x_shape is None:
-            raise ValueError('invalid argument')
+            raise ValueError("invalid argument")
         return self._x_shape
 
     def set_x_shape(self, x_shape):
@@ -100,7 +109,7 @@ class DataSets(object):
     @property
     def y_shape(self):
         if self._y_shape is None:
-            raise ValueError('invalid argument')
+            raise ValueError("invalid argument")
         return self._y_shape
 
     def set_y_shape(self, y_shape):
