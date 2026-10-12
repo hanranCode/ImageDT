@@ -9,12 +9,14 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-API = json.loads((ROOT / "tests" / "fixtures" / "legacy_api.json").read_text())
+API = json.loads(
+    (ROOT / "tests" / "fixtures" / "legacy_api.json").read_text(encoding="utf-8")
+)
 
 
 @pytest.mark.parametrize("path,definitions", list(API.items()), ids=list(API))
 def test_legacy_function_names_and_arguments(path, definitions):
-    tree = ast.parse((ROOT / path).read_text())
+    tree = ast.parse((ROOT / path).read_text(encoding="utf-8"))
     nodes = {
         node.name: node
         for node in tree.body

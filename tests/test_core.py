@@ -161,7 +161,9 @@ def test_file_operations(tmp_path):
     FilesOp.check_dir_exist(tmp_path / "nested" / "deep")
     assert FilesOp.fillter_file_type(["a.b.jpg", "a.xml"]) == ["a.b", "a"]
     assert FilesOp.fillter_dirname(["/tmp/image.jpg,1"]) == [["image.jpg", "1"]]
-    assert FilesOp.rename_with_uuid("/a/b.c.jpg", "uid") == "/a/uid.jpg"
+    assert Path(FilesOp.rename_with_uuid(tmp_path / "b.c.jpg", "uid")) == (
+        tmp_path / "uid.jpg"
+    )
     with pytest.raises(ValueError):
         FilesOp.rename_with_uuid("noext", "uid")
     with pytest.raises(OSError):
