@@ -1,0 +1,41 @@
+name: Python package checks
+on:
+  push:
+    branches: [main, master, 'codex/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  core:
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.10', '3.12', '3.14']
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install ".[dev,plot,excel,pdf,caffe]"
+      - run: python -m ruff check imagedt tests scripts test
+      - run: python -m ruff format --check imagedt tests scripts test setup.py
+      - run: python -m pytest -q
+      - run: python -m build
+      - run: python -m twine check dist/*
+      - run: python scripts/check_release.py
+  tensorflow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install ".[dev,plot,excel,pdf,tensorflow]"
+      - run: python -m pytest --cov=imagedt --cov-report=term-missing --cov-fail-under=88
