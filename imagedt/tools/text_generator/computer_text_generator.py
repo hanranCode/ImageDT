@@ -1,80 +1,50 @@
+"""Text rasterization using current Pillow font metrics."""
+
 import random
 
-import imagedt
-from PIL import Image, ImageColor, ImageFont, ImageDraw, ImageFilter
+from PIL import Image, ImageColor, ImageDraw, ImageFont
 
-class ComputerTextGenerator(object):
+
+class ComputerTextGenerator:
     @classmethod
     def generate(cls, text, font, text_color, font_size, orientation, space_width):
-        if orientation == 0:
-            return cls.__generate_horizontal_text(text, font, text_color, font_size, space_width)
-        elif orientation == 1:
-            return cls.__generate_vertical_text(text, font, text_color, font_size, space_width)
-        else:
-            raise ValueError("Unknown orientation " + str(orientation))
-
-    @classmethod
-    def __generate_horizontal_text(cls, text, font, text_color, font_size, space_width):
-        import random
-        font_size = random.randint(18, 24)
-        image_font = ImageFont.truetype(font=font, size=font_size)
-        words = text.split(' ')
-        space_width = image_font.getsize(' ')[0] * space_width
-
-        words_width = [image_font.getsize(w)[0] for w in words]
-        text_width =  sum(words_width) + int(space_width) * (len(words) - 1)
-        text_height = max([image_font.getsize(w)[1] for w in words])
-
-        txt_img = Image.new('RGBA', (text_width, text_height), (0, 0, 0, 0))
-
-        txt_draw = ImageDraw.Draw(txt_img)
-
-        colors = [ImageColor.getrgb(c) for c in text_color.split(',')]
-        c1, c2 = colors[0], colors[-1]
-
-        fill = (
-            random.randint(c1[0], c2[0]),
-            random.randint(c1[1], c2[1]),
-            random.randint(c1[2], c2[2]))
-
-        sum_words = len(words)
-
-        for i, w in enumerate(words):
-            if len(w) >= 3: 
-                txt_draw.text((sum(words_width[0:i]) + i * int(space_width), 0), w[:-2], fill=fill, font=image_font)
-                # last words reset small size
-                image_font = ImageFont.truetype(font=font, size=font_size/2)
-                txt_draw.text((sum(words_width[0:i]) + i * int(space_width)+ image_font.getsize(w)[1]*len(w[:-1])
-                    , 0), w[-2:], fill=fill, font=image_font)
-            else:
-                txt_draw.text((sum(words_width[0:i]) + i * int(space_width), 0), w, fill=fill, font=image_font)
-        return txt_img
-
-
-    @classmethod
-    def __generate_vertical_text(cls, text, font, text_color, font_size, space_width):
-        image_font = ImageFont.truetype(font=font, size=font_size)
-        
-        space_height = int(image_font.getsize(' ')[1] * space_width)
-
-        char_heights = [image_font.getsize(c)[1] if c != ' ' else space_height for c in text]
-        text_width = max([image_font.getsize(c)[0] for c in text])
-        text_height = sum(char_heights)
-
-        txt_img = Image.new('RGBA', (text_width, text_height), (0, 0, 0, 0))
-
-        txt_draw = ImageDraw.Draw(txt_img)
-
-        colors = [ImageColor.getrgb(c) for c in text_color.split(',')]
-        c1, c2 = colors[0], colors[-1]
-
-        fill = (
-            random.randint(c1[0], c2[0]),
-            random.randint(c1[1], c2[1]),
-            random.randint(c1[2], c2[2])
+        if not text:
+            raise ValueError("text must be nonempty")
+        if font_size <= 0 or space_width < 0:
+            raise ValueError("font size must be positive and space_width nonnegative")
+        if orientation not in (0, 1):
+            raise ValueError(f"Unknown orientation {orientation}")
+        image_font = ImageFont.truetype(font=font, size=int(font_size))
+        colors = [ImageColor.getrgb(color) for color in text_color.split(",")]
+        fill = tuple(
+            random.randint(min(a, b), max(a, b))
+            for a, b in zip(colors[0], colors[-1], strict=True)
         )
-
-        for i, c in enumerate(text):
-            txt_draw.text((0, sum(char_heights[0:i])), c, fill=fill, font=image_font)
-
-        return txt_img
+        if orientation == 0:
+            words = text.split(" ")
+            gap = round(image_font.getlength(" ") * space_width)
+            widths = [max(1, round(image_font.getlength(word))) for word in words]
+            height = max(1, max(image_font.getbbox(word)[3] for word in words))
+            image = Image.new("RGBA", (sum(widths) + gap * (len(words) - 1), height))
+            draw = ImageDraw.Draw(image)
+            x = 0
+            for word, width in zip(words, widths, strict=True):
+                draw.text((x, 0), word, font=image_font, fill=fill)
+                x += width + gap
+        else:
+            boxes = [image_font.getbbox(char) for char in text]
+            heights = [
+                max(1, box[3])
+                if char != " "
+                else max(1, round(font_size * space_width))
+                for char, box in zip(text, boxes, strict=True)
+            ]
+            image = Image.new(
+                "RGBA", (max(1, max(box[2] for box in boxes)), sum(heights))
+            )
+            draw = ImageDraw.Draw(image)
+            y = 0
+            for char, height in zip(text, heights, strict=True):
+                draw.text((0, y), char, font=image_font, fill=fill)
+                y += height
+        return image

@@ -12,104 +12,42 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Tests for slim.nets.vgg."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+"""Standalone LeNet compatibility tests; the main suite lives under tests/."""
 
-import os
-import tensorflow as tf
+import unittest
 
-from . import lenet
+from imagedt._backends import require
 
-slim = tf.contrib.slim
+from .lenet import lenet
 
 
-class LeNetTest(tf.test.TestCase):
-  print("init test: LeNetTest...")
+class LeNetTest(unittest.TestCase):
+    def testBuild(self):
+        tf = require("tensorflow", "tensorflow")
+        logits, endpoints = lenet(tf.zeros((2, 28, 28, 3)), 10, is_training=False)
+        self.assertEqual(tuple(logits.shape), (2, 10))
+        self.assertEqual(
+            set(endpoints),
+            {
+                "conv1",
+                "pool1",
+                "conv2",
+                "pool2",
+                "Flatten",
+                "fc3",
+                "dropout3",
+                "Logits",
+                "Predictions",
+            },
+        )
 
-  def testBuild(self):
-    batch_size = 5
-    height, width = 28, 28
-    num_classes = 10
-    with self.test_session():
-      inputs = tf.random_uniform((batch_size, height, width, 3))
-      logits, _ = lenet(inputs, num_classes)
-      self.assertEquals(logits.op.name, 'LeNet/fc4/BiasAdd')
-      self.assertListEqual(logits.get_shape().as_list(),
-                           [batch_size, num_classes])
-
-  def testFullyConvolutional(self):
-    batch_size = 1
-    height, width = 28, 28
-    num_classes = 10
-    with self.test_session():
-      inputs = tf.random_uniform((batch_size, height, width, 3))
-      logits, _ = lenet(inputs, num_classes)
-      self.assertEquals(logits.op.name, 'LeNet/fc4/BiasAdd')
-      self.assertListEqual(logits.get_shape().as_list(),
-                           [batch_size, num_classes])
-
-  def testGlobalPool(self):
-    batch_size = 1
-    height, width = 28, 28
-    num_classes = 10
-    with self.test_session():
-      inputs = tf.random_uniform((batch_size, height, width, 3))
-      logits, _ = lenet(inputs, num_classes)
-      self.assertEquals(logits.op.name, 'LeNet/fc4/BiasAdd')
-      self.assertListEqual(logits.get_shape().as_list(),
-                           [batch_size, num_classes])
-
-  def testEndPoints(self):
-    batch_size = 5
-    height, width = 28, 28
-    num_classes = 10
-    with self.test_session():
-      inputs = tf.random_uniform((batch_size, height, width, 3))
-      _, end_points = lenet(inputs, num_classes)
-      expected_names = ['conv1', 
-                        'pool1',
-                        'conv2', 
-                        'pool2', 
-                        'Flatten',
-                        'fc3',
-                        'dropout3', 
-                        'Logits', 
-                        'Predictions']
-
-      self.assertSetEqual(set(end_points.keys()), set(expected_names))
-
-  def testEvaluation(self):
-    batch_size = 2
-    height = width = lenet.default_image_size  # set train imgae size
-    num_classes = 10
-    with self.test_session():
-      eval_inputs = tf.random_uniform((batch_size, height, width, 3))
-      logits, _ = lenet(eval_inputs, is_training=False)
-      self.assertListEqual(logits.get_shape().as_list(),
-                           [batch_size, num_classes])
-      predictions = tf.argmax(logits, 1)
-      self.assertListEqual(predictions.get_shape().as_list(), [batch_size])
-
-  def testForward(self): 
-    batch_size = 1
-    height = width = lenet.default_image_size  # set train imgae size
-    with self.test_session() as sess:
-      inputs = tf.random_uniform((batch_size, height, width, 3))
-      logits, _ = lenet(inputs)
-      sess.run(tf.global_variables_initializer())
-      output = sess.run(logits)
-      self.assertTrue(output.any())
-
-  def TODO_train(self):
-    imgae_dir = './test/images'
-    images_path = os.listdir(imgae_dir)
-
-    for image_path in images_path:
-      cv2.imread(os.path.join(image_dir, image_path))
+    def testForward(self):
+        tf = require("tensorflow", "tensorflow")
+        _, endpoints = lenet(tf.ones((1, 28, 28, 3)), is_training=False)
+        self.assertAlmostEqual(
+            float(tf.reduce_sum(endpoints["Predictions"])), 1.0, places=5
+        )
 
 
-
-if __name__ == '__main__':
-  tf.test.main()
+if __name__ == "__main__":
+    unittest.main()

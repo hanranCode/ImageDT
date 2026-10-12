@@ -1,0 +1,6 @@
+include LICENSE README.md CHANGELOG.md CONTRIBUTING.md TESTING.md SECURITY.md Makefile .editorconfig .gitattributes pyproject.toml requirements.txt upload_pip.sh
+recursive-include tests *.py *.json
+recursive-include test *.py
+recursive-include scripts *.py
+recursive-include docs *.md *.json
+include .github/workflows/test.yml

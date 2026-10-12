@@ -3,7 +3,7 @@ from collections import namedtuple
 
 from .errors import KaffeError
 
-TensorShape = namedtuple('TensorShape', ['batch_size', 'channels', 'height', 'width'])
+TensorShape = namedtuple("TensorShape", ["batch_size", "channels", "height", "width"])
 
 
 def get_filter_output_shape(i_h, i_w, params, round_func):
@@ -15,10 +15,11 @@ def get_filter_output_shape(i_h, i_w, params, round_func):
 def get_strided_kernel_output_shape(node, round_func):
     assert node.layer is not None
     input_shape = node.get_only_parent().output_shape
-    o_h, o_w = get_filter_output_shape(input_shape.height, input_shape.width,
-                                       node.layer.kernel_parameters, round_func)
+    o_h, o_w = get_filter_output_shape(
+        input_shape.height, input_shape.width, node.layer.kernel_parameters, round_func
+    )
     params = node.layer.parameters
-    has_c_o = hasattr(params, 'num_output')
+    has_c_o = hasattr(params, "num_output")
     c = params.num_output if has_c_o else input_shape.channels
     return TensorShape(input_shape.batch_size, c, o_h, o_w)
 
@@ -42,16 +43,18 @@ def shape_data(node):
         return node.output_shape
     try:
         # New-style input specification
-        return map(int, node.parameters.shape[0].dim)
-    except:
+        return TensorShape(*map(int, node.parameters.shape[0].dim))
+    except (AttributeError, IndexError, TypeError, ValueError) as error:
         # We most likely have a data layer on our hands. The problem is,
         # Caffe infers the dimensions of the data from the source (eg: LMDB).
         # We want to avoid reading datasets here. Fail for now.
         # This can be temporarily fixed by transforming the data layer to
         # Caffe's "input" layer (as is usually used in the "deploy" version).
         # TODO: Find a better solution for this.
-        raise KaffeError('Cannot determine dimensions of data layer.\n'
-                         'See comments in function shape_data for more info.')
+        raise KaffeError(
+            "Cannot determine dimensions of data layer.\n"
+            "See comments in function shape_data for more info."
+        ) from error
 
 
 def shape_mem_data(node):
@@ -66,6 +69,14 @@ def shape_concat(node):
         if output_shape is None:
             output_shape = list(parent.output_shape)
         else:
+            if any(
+                output_shape[index] != parent.output_shape[index]
+                for index in range(len(output_shape))
+                if index != axis % len(output_shape)
+            ):
+                raise KaffeError(
+                    "Concat inputs must agree on non-concatenated dimensions"
+                )
             output_shape[axis] += parent.output_shape[axis]
     return tuple(output_shape)
 

@@ -1,19 +1,13 @@
-# 打包
-# 参考: https://packaging.python.org/tutorials/distributing-packages/#uploading-your-project-to-pypi
-
-# 清掉文件
-rm -rf build
-rm -rf dist
-rm -rf imagedt.egg-info
-
-# 切换到python3，以便包通用
-# source py35
-
-# 本地打包，--universal适配python2与python3
-python setup.py sdist bdist_wheel --universal
-
-# 上传
-twine upload dist/*
-
-# 退出python3，进入python2中
-# source deactivate
+#!/usr/bin/env bash
+set -euo pipefail
+# Build and validate a fresh release. Upload is an explicit, separate choice.
+python_cmd="${PYTHON:-python3}"
+output_dir="$(mktemp -d "${TMPDIR:-/tmp}/imagedt-release.XXXXXX")"
+"$python_cmd" -m build --outdir "$output_dir"
+"$python_cmd" -m twine check "$output_dir"/*
+printf 'Validated artifacts: %s\n' "$output_dir"
+if [[ "${1:-}" == "--upload" ]]; then
+  "$python_cmd" -m twine upload "$output_dir"/*
+else
+  printf 'Ready for review. To publish explicitly, run: PYTHON=%s bash upload_pip.sh --upload\n' "$python_cmd"
+fi

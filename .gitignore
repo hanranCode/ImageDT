@@ -109,3 +109,15 @@ venv.bak/
 *.ipynb
 *.xml
 test/sources/
+# Python 3 refactor build and test artifacts
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
+build/
+dist/
+*.egg-info/

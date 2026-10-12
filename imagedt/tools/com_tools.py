@@ -1,17 +1,13 @@
-# coding: utf-8
-from __future__ import absolute_import
-from __future__ import print_function
+"""Small network utilities."""
 
 import socket
 
 
 def getip():
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('www.baidu.com', 0))
-        ip = s.getsockname()[0]
-    except:
-        ip = "x.x.x.x"
-    finally:
-        s.close()
-    return ip
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.settimeout(2)
+            sock.connect(("www.baidu.com", 0))
+            return sock.getsockname()[0]
+    except OSError:
+        return "x.x.x.x"

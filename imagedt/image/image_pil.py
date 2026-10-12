@@ -1,7 +1,5 @@
-# coding: utf-8
-from PIL import Image
 import numpy as np
-import collections
+from PIL import Image
 
 
 def alpha_to_color(image, color=(255, 255, 255)):
@@ -12,7 +10,7 @@ def alpha_to_color(image, color=(255, 255, 255)):
     Keyword Arguments:
     image -- PIL RGBA Image object
     color -- Tuple r, g, b (default 255, 255, 255)
-    """ 
+    """
     x = np.array(image)
     r, g, b, a = np.rollaxis(x, axis=-1)
     # print np.where(a != 0)
@@ -21,4 +19,4 @@ def alpha_to_color(image, color=(255, 255, 255)):
     b[a == 0] = color[2]
     a = np.ones_like(a) * 255
     x = np.dstack([r, g, b, a])
-    return Image.fromarray(x, 'RGBA')
+    return Image.fromarray(x, "RGBA")
