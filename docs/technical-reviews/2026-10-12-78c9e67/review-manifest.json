@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "review_id": "2026-10-12-78c9e67",
+  "mode": "initial",
+  "generated_at": "2026-10-12T11:07:59.472004+08:00",
+  "repository": "https://github.com/hanranCode/ImageDT",
+  "revision": "78c9e671526422f28bd564cad9879ef95f12b454",
+  "previous_review_id": null,
+  "scope": [
+    "entire Python package, legacy tests, dependencies and release tooling"
+  ],
+  "exclusions": [],
+  "evidence_limitations": [
+    "No production datasets, historical trained checkpoints or deployment telemetry were supplied.",
+    "Local verification is macOS arm64; configured Linux/Windows CI has not executed remotely.",
+    "Original revision is the baseline; implementation outcomes refer to the current uncommitted working tree."
+  ]
+}
